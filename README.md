@@ -19,11 +19,11 @@ https://gitlab.univ-lorraine.fr
 
 **GitHub**
 
-https://github.com/Jayblanc/mbyte
+https://github.com/jayblanc/mbyte
 
 **Discord**  
 
-https://discord.gg/Sjzbx2gF
+https://discord.gg/JrJeak3H
 
 ### Technologies used
 
@@ -42,12 +42,12 @@ https://www.postgresql.org/
 
 ### Global Architecture Understanding
 
-The MByte project is a **Software as a Service (SaaS) online storage solution**. It is build using self-developed and existing pieces of software that evolves in a distributed environment.
+The MByte project is a **Software as a Service (SaaS) online storage solution**. It is built using self-developed and existing pieces of software that evolve in a distributed environment.
 
 The global architecture is composed of : 
 
 - A **Reverse Proxy** that is the main entry point for web access (HTTP).
-- An **Identity Provider (IdP)** that is responsible for the authentication of users in a centralized way : Keycloak. It implements OpenID Connect (OIDC) to ease integration with others high level components.
+- An **Identity Provider (IdP)** that is responsible for the authentication of users in a centralized way : Keycloak. It implements OpenID Connect (OIDC) to ease integration with other high-level components.
 - A **Relational Database** : PostgresSQL. It is used to persist the data of the applications. 
 - A **Service Registry** : Consul. It is used to register and discover services in a distributed environment.
 - The **Manager** application: It is the main entry point for the users. It is a web application that is responsible for the management of users and their stores.
