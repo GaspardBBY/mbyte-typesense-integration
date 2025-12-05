@@ -92,7 +92,7 @@ public class DokkuStoreProvider implements StoreProvider {
         LOGGER.log(Level.INFO, "[dokku] Creating new store apps");
         List<String> cmds = new ArrayList<>();
         cmds.add("apps:create " + owner);
-        cmds.add("postgres:create " + owner + "-db --password PgTagada54");
+        cmds.add("postgres:create " + owner + "-db --password password");
         cmds.add("postgres:link " + owner + "-db " + owner);
         cmds.add("storage:ensure-directory --chown heroku " + owner + "-data");
         cmds.add("storage:mount " + owner + " /var/lib/dokku/data/storage/" + owner + "-data:/opt/jboss/filestore");
@@ -100,7 +100,7 @@ public class DokkuStoreProvider implements StoreProvider {
                 " OIDC_PROVIDER_URL=http://auth." + config.host() + "/realms/Miage.23" +
                 " OIDC_CLIENT_ID=filestore" +
                 " DB_USER=postgres" +
-                " DB_PASS=PgTagada54" +
+                " DB_PASS=password" +
                 " DB_HOST=dokku-postgres-" + owner + "-db" +
                 " DB_PORT=5432" +
                 " DB_NAME=" + owner + "_db" +
