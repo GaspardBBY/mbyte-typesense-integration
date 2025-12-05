@@ -108,7 +108,7 @@ services:
       - MANAGER.TOPOLOGY.PORT=8500
 
   store:
-    image: docker.io/oui/store:25.1-SNAPSHOT
+    image: jerome/store:25.1-SNAPSHOT
     hostname: sheldon
     container_name: mbyte_store_sheldon
     depends_on:
