@@ -1,10 +1,12 @@
 package fr.jayblanc.mbyte.store.search;
 
 import fr.jayblanc.mbyte.store.auth.AuthenticationService;
-import fr.jayblanc.mbyte.store.index.*;
+import fr.jayblanc.mbyte.store.index.IndexStoreException;
+import fr.jayblanc.mbyte.store.index.IndexStoreResult;
+import fr.jayblanc.mbyte.store.index.IndexStoreService;
+import fr.jayblanc.mbyte.store.index.IndexableContent;
 import fr.jayblanc.mbyte.store.metrics.GenerateMetric;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
@@ -18,7 +20,6 @@ public class SearchServiceBean implements SearchService {
 
     private static final Logger LOGGER = Logger.getLogger(SearchServiceBean.class.getName());
 
-    @Inject Instance<IndexableContentProvider> providers;
     @Inject IndexStoreService index;
     @Inject AuthenticationService auth;
 

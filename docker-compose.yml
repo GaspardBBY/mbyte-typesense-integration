@@ -35,7 +35,7 @@ services:
         ipv4_address: 172.25.0.3
 
   db:
-    image: postgres
+    image: postgres:latest
     hostname: db
     container_name: mbyte.db
     environment:
@@ -43,7 +43,7 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=mbyte
     volumes:
-      - mbyte.db.volume:/var/lib/postgresql/data
+      - mbyte.db.volume:/var/lib/postgresql
       - ./provisioning/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       mbyte:
@@ -109,30 +109,6 @@ services:
       - QUARKUS_OIDC_AUTH_SERVER_URL=http://auth.mbyte.fr/realms/mbyte
       - MANAGER.TOPOLOGY.HOST=consul
       - MANAGER.TOPOLOGY.PORT=8500
-
-#  store:
-#    image: jerome/store:25.1-SNAPSHOT
-#    hostname: sheldon
-#    container_name: mbyte.sheldon.store
-#    depends_on:
-#      - db
-#      - traefik
-#      - keycloak
-#    networks:
-#      mbyte:
-#        ipv4_address: 172.25.0.7
-#    labels:
-#      - "traefik.enable=true"
-#      - "traefik.docker.network=mbyte"
-#      - "traefik.http.routers.sheldon.rule=Host(`sheldon.s.mbyte.fr`)"
-#      - "traefik.http.routers.sheldon.entrypoints=http"
-#      - "traefik.http.routers.sheldon.service=sheldon-http"
-#      - "traefik.http.services.sheldon-http.loadbalancer.server.port=8080"
-#    environment:
-#      - QUARKUS_HTTP_PORT=8080
-#      - QUARKUS_OIDC_AUTH_SERVER_URL=http://auth.mbyte.fr/realms/mbyte
-#      - MANAGER.TOPOLOGY.HOST=consul
-#      - MANAGER.TOPOLOGY.PORT=8500
 
 networks:
   mbyte:
