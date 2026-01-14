@@ -1,0 +1,42 @@
+/* Reset minimal pour laisser CoreUI gérer le look & feel */
+:root {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* --- Theme overrides (CoreUI / Bootstrap variables) --- */
+  --cui-primary: #23b7e5;
+  --cui-primary-rgb: 35, 183, 229;
+
+  --bs-primary: #23b7e5;
+  --bs-primary-rgb: 35, 183, 229;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* Light gray background behind main content (cards, pages, etc.) */
+body {
+  background: #f6f7f9;
+}
+
+/* Force primary button colors to match MByte blue (covers CoreUI button vars). */
+.btn.btn-primary {
+  --cui-btn-bg: #23b7e5;
+  --cui-btn-border-color: #23b7e5;
+  --cui-btn-hover-bg: #1fa8d1;
+  --cui-btn-hover-border-color: #1fa8d1;
+  --cui-btn-active-bg: #1fa8d1;
+  --cui-btn-active-border-color: #1fa8d1;
+}

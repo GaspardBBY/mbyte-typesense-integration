@@ -21,7 +21,7 @@ import jakarta.persistence.*;
 
 @Entity
 @NamedQueries({
-    @NamedQuery(name = "Store.findByOwner", query = "SELECT s FROM Store s WHERE s.owner = :owner")
+    @NamedQuery(name = "Store.findIdByOwner", query = "SELECT s.id FROM Store s WHERE s.owner = :owner")
 })
 @Table(indexes = {
         @Index(name = "stores_idx", columnList = "owner")
@@ -38,8 +38,6 @@ public class Store {
     private float usage;
     @Enumerated(EnumType.STRING)
     private Status status;
-    @Lob
-    private String log;
     @Transient
     private String location;
 
@@ -102,14 +100,6 @@ public class Store {
         this.status = status;
     }
 
-    public String getLog() {
-        return log;
-    }
-
-    public void setLog(String log) {
-        this.log = log;
-    }
-
     public String getLocation() {
         return location;
     }
@@ -119,8 +109,10 @@ public class Store {
     }
 
     public enum Status {
-        PENDING,
+        CREATED,
+        STARTING,
         AVAILABLE,
-        LOST
+        LOST,
+        ERROR
     }
 }

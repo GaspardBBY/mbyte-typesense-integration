@@ -57,7 +57,7 @@ The global architecture is composed of :
 ### Building modules and docker images
 
 ```bash
-mvn clean install  -Dquarkus.container-image.build=true -DskipTests
+mvn clean install -Dquarkus.container-image.build=true -DskipTests
 ```
 
 ### Configuring domain name resolution
@@ -75,7 +75,7 @@ For local development, the easiest way is to use /etc/hosts.
 Add in /etc/hosts the following lines : 
 
 ```
-127.0.0.1	auth.mbyte.fr www.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.stores.mbyte.fr
+127.0.0.1	auth.mbyte.fr www.mbyte.fr manager.mbyte.fr proxy.mbyte.fr registry.mbyte.fr sheldon.stores.mbyte.fr
 ```
 
 Note: You will have to add more entries for each store you create. For example, if you create a store with identifier `teststore`, you will have to add the following line : 

@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 @Startup
 public class TopologyServiceBean implements TopologyService {
 
-    private static final Logger LOGGER = Logger.getLogger(TopologyService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(TopologyServiceBean.class.getName());
 
     @Inject TopologyConfig config;
 
@@ -51,6 +51,10 @@ public class TopologyServiceBean implements TopologyService {
 
     @PostConstruct
     public void init() {
+        if (!config.enabled()) {
+            LOGGER.log(Level.INFO, "Topology service is disabled");
+            return;
+        }
         LOGGER.log(Level.INFO, "Initializing topology bean");
         consulClient = Consul.builder().withHttps(config.https()).withHostAndPort(HostAndPort.fromParts(config.host(), config.port())).build();
         serviceName = "mbyte.manager";
@@ -69,6 +73,10 @@ public class TopologyServiceBean implements TopologyService {
     @PreDestroy
     public void stop() {
         LOGGER.log(Level.INFO, "Stopping topology bean");
+        if (!config.enabled()) {
+            LOGGER.log(Level.INFO, "Topology service is disabled");
+            return;
+        }
         if (registered) {
             consulClient.agentClient().deregister(instanceId);
             this.registered = false;
@@ -100,15 +108,16 @@ public class TopologyServiceBean implements TopologyService {
     }
 
     @Override
-    public String lookup(String name) {
+    public String lookup(String id) {
+        if (!config.enabled()) {
+            LOGGER.log(Level.INFO, "Topology service is disabled");
+            return null;
+        }
         CatalogClient catalog = consulClient.catalogClient();
-        List<CatalogService> services =  catalog.getService("mbyte.store.".concat(name)).getResponse();
+        List<CatalogService> services =  catalog.getService(id).getResponse();
         LOGGER.log(Level.INFO, "Services list: " + services);
         Optional<String> fqdn = services.stream().flatMap(s -> s.getServiceTags().stream().filter(tag -> tag.startsWith("fqdn"))).findFirst();
-        if (fqdn.isPresent()) {
-            return fqdn.get().substring(5);
-        }
-        return null;
+        return fqdn.orElse(null);
     }
 
     private Registration buildRegistration() {

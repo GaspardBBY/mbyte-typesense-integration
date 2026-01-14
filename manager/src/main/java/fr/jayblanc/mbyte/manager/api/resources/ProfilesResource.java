@@ -22,6 +22,9 @@ import fr.jayblanc.mbyte.manager.core.CoreService;
 import fr.jayblanc.mbyte.manager.core.CoreServiceException;
 import fr.jayblanc.mbyte.manager.core.StoreNotFoundException;
 import fr.jayblanc.mbyte.manager.core.entity.Store;
+import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.process.ProcessEngine;
+import fr.jayblanc.mbyte.manager.process.entity.Process;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.inject.Inject;
@@ -29,6 +32,8 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,6 +44,7 @@ public class ProfilesResource {
 
     @Inject AuthenticationService auth;
     @Inject CoreService core;
+    @Inject ProcessEngine engine;
     @Inject Template profile;
 
     @GET
@@ -53,7 +59,7 @@ public class ProfilesResource {
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response profile(@PathParam("id") String id, @Context UriInfo uriInfo) {
+    public Response profile(@PathParam("id") String id) {
         LOGGER.log(Level.INFO, "GET /api/profiles/" + id);
         Profile profile = auth.getConnectedProfile();
         return Response.ok(profile).build();
@@ -62,43 +68,56 @@ public class ProfilesResource {
     @GET
     @Path("{id}")
     @Produces(MediaType.TEXT_HTML)
-    public TemplateInstance profileView(@PathParam("id") String id, @Context UriInfo uriInfo) {
+    public TemplateInstance profileView(@PathParam("id") String id) {
         LOGGER.log(Level.INFO, "GET /api/profiles/" + id + " (html)");
         TemplateInstance view = profile.data("profile", auth.getConnectedProfile());
         try {
-            view = view.data("store", core.getConnectedUserStore());
-        } catch (StoreNotFoundException | CoreServiceException e ) {
+            String sid = core.listConnectedUserStores().getFirst();
+            view = view.data("store", core.getStore(sid));
+        } catch (NoSuchElementException | StoreNotFoundException | CoreServiceException | AccessDeniedException e ) {
             //
         }
         return view;
     }
 
     @GET
-    @Path("{id}/store")
+    @Path("{id}/stores")
     @Produces(MediaType.APPLICATION_JSON)
-    public Store getProfileStore(@PathParam("id") String id) throws StoreNotFoundException, CoreServiceException {
-        LOGGER.log(Level.INFO, "GET /api/profiles/" + id + "/store");
-        return core.getConnectedUserStore();
+    public List<String> listProfileStores(@PathParam("id") String id) {
+        LOGGER.log(Level.INFO, "GET /api/profiles/" + id + "/stores");
+        return core.listConnectedUserStores();
     }
 
     @GET
-    @Path("{id}/store/log")
+    @Path("{id}/stores/{sid}")
     @Produces(MediaType.APPLICATION_JSON)
-    public String getProfileStoreLog(@PathParam("id") String id) throws StoreNotFoundException, CoreServiceException {
-        LOGGER.log(Level.INFO, "GET /api/profiles/" + id + "/store/log");
-        return core.getConnectedUserStore().getLog();
+    public Store getProfileStore(@PathParam("id") String id, @PathParam("sid") String sid) throws StoreNotFoundException, CoreServiceException, AccessDeniedException {
+        LOGGER.log(Level.INFO, "GET /api/profiles/" + id + "/stores/" + sid);
+        return core.getStore(sid);
+    }
+
+    @GET
+    @Path("{id}/stores/{sid}/processes")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Process> getProfileStoreProcesses(@PathParam("id") String id, @PathParam("sid") String sid, @QueryParam("active") @DefaultValue("true") boolean active)
+            throws StoreNotFoundException, CoreServiceException, AccessDeniedException {
+        LOGGER.log(Level.INFO, "GET /api/profiles/" + id + "/stores/processes?active=" + active);
+        Store store = core.getStore(sid);
+        if (active) {
+            return engine.findRunningProcessesForStore(store.getId());
+        }
+        return engine.findAllProcessesForStore(store.getId());
     }
 
     @POST
-    @Path("{id}/store")
-    @Produces(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response createProfileStore(@PathParam("id") String id, MultivaluedMap<String, String> form, @Context UriInfo uriInfo) {
-        LOGGER.log(Level.INFO, "POST /api/profiles/" + id + "/store");
-        Store store = core.createStore(form.getFirst("name"));
-        LOGGER.log(Level.INFO, "Store created with id: " + store.getId());
-        String connectedId = auth.getConnectedIdentifier();
-        URI root = uriInfo.getBaseUriBuilder().path(ProfilesResource.class).path(connectedId).build();
-        return Response.seeOther(root).build();
+    @Path("{id}/stores")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response createProfileStore(@PathParam("id") String id, MultivaluedMap<String, String> form, @Context UriInfo uriInfo) throws CoreServiceException {
+        LOGGER.log(Level.INFO, "POST /api/profiles/" + id + "/stores");
+        String storeId = core.createStore(form.getFirst("name"));
+        LOGGER.log(Level.INFO, "Store created with id: " + storeId);
+        URI location = uriInfo.getBaseUriBuilder().path(ProfilesResource.class).path(id).path("stores").path(storeId).build();
+        return Response.created(location).entity(java.util.Map.of("storeId", storeId)).build();
     }
 
 

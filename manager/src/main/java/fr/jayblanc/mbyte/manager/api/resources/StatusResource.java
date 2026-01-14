@@ -17,9 +17,12 @@
 package fr.jayblanc.mbyte.manager.api.resources;
 
 import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
-import fr.jayblanc.mbyte.manager.store.StoreManager;
-import fr.jayblanc.mbyte.manager.store.StoreProviderException;
-import fr.jayblanc.mbyte.manager.store.StoreProviderNotFoundException;
+import fr.jayblanc.mbyte.manager.core.CoreService;
+import fr.jayblanc.mbyte.manager.core.CoreServiceException;
+import fr.jayblanc.mbyte.manager.core.StoreNotFoundException;
+import fr.jayblanc.mbyte.manager.runtime.Runtime;
+import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderException;
+import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderNotFoundException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -39,16 +42,16 @@ public class StatusResource {
     private static final Logger LOGGER = Logger.getLogger(StatusResource.class.getName());
 
     @Inject AuthenticationService auth;
-    @Inject StoreManager manager;
+    @Inject CoreService core;
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getStatus() throws StoreProviderNotFoundException, StoreProviderException {
+    public Response getStatus() throws CoreServiceException {
         LOGGER.log(Level.INFO, "GET /api/status");
-        Map<String, String> status = new HashMap<>();
-        status.put("connected-profile", auth.getConnectedProfile().toString());
+        Map<String, Object> status = new HashMap<>();
         status.put("status", "ok");
-        status.put("apps", manager.getProvider().listAllStores().stream().collect(Collectors.joining(",")));
+        status.put("connected-profile", auth.getConnectedProfile().toString());
+        status.put("stores", core.listConnectedUserStores());
         return Response.ok(status).build();
     }
 

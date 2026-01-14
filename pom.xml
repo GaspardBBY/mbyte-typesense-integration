@@ -33,18 +33,22 @@
                 <artifactId>license-maven-plugin</artifactId>
                 <version>4.3</version>
                 <configuration>
-                    <header>LICENSE_HEADER.txt</header>
                     <properties>
                         <year>2025</year>
                         <owner>Jerome Blanchard</owner>
                     </properties>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <excludes>
-                        <exclude>**/target/**</exclude>
-                        <exclude>**/node_modules/**</exclude>
-                    </excludes>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>LICENSE_HEADER.txt</header>
+                            <includes>
+                                <include>**/*.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/target/**</exclude>
+                                <exclude>**/node_modules/**</exclude>
+                            </excludes>
+                        </licenseSet>
+                    </licenseSets>
                 </configuration>
                 <executions>
                     <execution>
@@ -60,6 +64,7 @@
     <modules>
         <module>store</module>
         <module>manager</module>
+        <module>gui</module>
     </modules>
 </project>
 

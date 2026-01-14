@@ -100,7 +100,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=mbyte"
-      - "traefik.http.routers.manager.rule=Host(`www.mbyte.fr`)"
+      - "traefik.http.routers.manager.rule=Host(`manager.mbyte.fr`)"
       - "traefik.http.routers.manager.entrypoints=http"
       - "traefik.http.routers.manager.service=manager-http"
       - "traefik.http.services.manager-http.loadbalancer.server.port=8080"

@@ -34,4 +34,33 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="2" author="jerome">
+        <createTable tableName="workflowinstance">
+            <column name="id" type="varchar">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="owner" type="varchar"/>
+            <column name="name" type="varchar"/>
+            <column name="creationdate" type="bigint"/>
+            <column name="startdate" type="bigint"/>
+            <column name="enddate" type="bigint"/>
+            <column name="tasks" type="clob"/>
+            <column name="context" type="text"/>
+            <column name="nexttaskid" type="int"/>
+            <column name="runningtaskjobid" type="varchar"/>
+            <column name="status" type="varchar"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="jerome">
+        <renameTable oldTableName="workflowinstance" newTableName="processinstance"/>
+        <addColumn tableName="processinstance">
+            <column name="store" type="varchar"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="4" author="jerome">
+        <dropColumn tableName="store" columnName="log"/>
+    </changeSet>
+
 </databaseChangeLog>

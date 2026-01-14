@@ -24,6 +24,7 @@ import io.smallrye.config.ConfigMapping;
 @ConfigMapping(prefix = "manager.topology")
 public interface TopologyConfig {
 
+    boolean enabled();
     boolean https();
     String host();
     int port();

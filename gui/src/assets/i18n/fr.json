@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "mbyte",
+    "now": "à l’instant",
+    "user": "Utilisateur",
+    "testNotification": "Notification de test via CoreUI."
+  },
+  "auth": {
+    "logout": "Se délogger"
+  },
+  "sidebar": {
+    "hello": "Hello, {{name}}"
+  },
+  "dashboard": {
+    "welcomeTitle": "Bienvenue",
+    "coreuiIntro": "CoreUI est intégré. Tu peux maintenant construire tes pages et composants.",
+    "callInProgress": "Appel en cours...",
+    "testApiButton": "Tester un appel API (manager /q/health)",
+    "notificationsTitle": "Notifications",
+    "notificationsIntro": "Exemple (simple) d'affichage d'un toast.",
+    "showNotificationButton": "Afficher une notification",
+    "createStore": {
+      "title": "Store",
+      "freePlan": "free plan",
+      "offerTitle": "Start your online store experience now",
+      "storageSpace": "Espace de stockage : 500Mo",
+      "rateLimit": "Rate Limit : 1000 req/s",
+      "downloadQuota": "Quota de téléchargement : 1Go/mois",
+      "price": "Prix :",
+      "startNow": "Start now",
+      "creationInProgress": "Création en cours…"
+    }
+  },
+  "i18n": {
+    "switchToFrench": "Basculer la langue en français",
+    "switchToEnglish": "Basculer la langue en anglais"
+  }
+}

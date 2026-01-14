@@ -1,0 +1,189 @@
+/* Styles spécifiques App (template Vite supprimé). */
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- User block (SidebarProfile) --- */
+.mbyte-userblock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.mbyte-userblock__avatar {
+  display: flex;
+  justify-content: center;
+}
+
+.mbyte-userblock__name {
+  font-weight: 600;
+}
+
+.mbyte-userblock__email {
+  font-size: 0.875rem;
+  color: var(--cui-body-color, #555);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mbyte-userblock__actions {
+  margin-top: 6px;
+}
+
+.mbyte-userblock--compact {
+  padding: 0;
+}
+
+.mbyte-userblock--compact .img-thumbnail {
+  padding: 2px;
+}
+
+/* --- Blue headers (sidebar header + top header) --- */
+.mbyte-header {
+  background-color: #23b7e5;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.header.mbyte-header,
+.sidebar-header.mbyte-header {
+  height: 55px;
+  min-height: 55px;
+}
+
+/* --- Sidebar brand (logo) --- */
+.mbyte-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 55px;
+  padding: 0 16px;
+}
+
+.sidebar-header.mbyte-header .mbyte-brand {
+  height: 55px;
+  padding: 0 16px;
+  justify-content: flex-start;
+}
+
+.mbyte-sidebar.sidebar-narrow .sidebar-header.mbyte-header .mbyte-brand {
+  justify-content: flex-start;
+}
+
+.mbyte-brand__img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* --- Sidebar layout --- */
+.mbyte-sidebar {
+  position: relative;
+  border-right: 0 !important; /* on dessine la bordure manuellement sous le header */
+}
+
+/* Bordure droite gris foncé uniquement sous le header (donc pas sur la zone bleue) */
+.mbyte-sidebar::after {
+  content: '';
+  position: absolute;
+  top: 55px;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* Supprime le padding par défaut CoreUI sur le nav via variables + padding direct */
+.mbyte-sidebar .sidebar-nav {
+  --cui-sidebar-nav-padding-x: 0;
+  --cui-sidebar-nav-padding-y: 0;
+  padding: 0 !important;
+}
+
+.mbyte-sidebar .sidebar-nav .nav-item {
+  margin: 0;
+  padding: 0 !important;
+}
+
+/* --- Sidebar links (sections) --- */
+.mbyte-sidebar-link {
+  display: block;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Option A: on garde un padding-left CONSTANT et on compense la border-left via margin-left négatif.
+   Objectif: distance fixe border->icône = 18px, actif/inactif, compact/normal. */
+.mbyte-sidebar-link__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  padding-left: 18px;
+}
+
+.mbyte-sidebar-link__icon {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mbyte-sidebar-link.is-active {
+  background: rgba(0, 0, 0, 0.04);
+  border-left: 3px solid #23b7e5;
+  /* On ne décale pas le lien (sinon la border peut passer sous la sidebar).
+     On compense plutôt l'espace de la border via le padding de l'inner. */
+  margin-left: 0;
+  padding-left: 0;
+}
+
+/* Distance fixe bord -> icône (18px) même quand il y a une border-left de 3px */
+.mbyte-sidebar-link.is-active .mbyte-sidebar-link__inner {
+  padding-left: 21px; /* 18 + 3px de border */
+}
+
+/* --- Mode compact --- */
+.mbyte-sidebar-link.is-compact {
+  color: #23b7e5; /* icône hérite currentColor */
+}
+
+.mbyte-sidebar-link.is-compact .mbyte-sidebar-link__inner {
+  justify-content: flex-start; /* garde l'écart fixe bord -> icône */
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+/* Le SVG de CIcon utilise currentColor, on force aussi au cas où */
+.mbyte-sidebar-link.is-compact svg {
+  color: #23b7e5;
+}
+
+/* Icône plus grande en mode compact */
+.mbyte-sidebar-link.is-compact .icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* SidebarProfile: make sign-out button more visible even without hover */
+.mbyte-userblock__actions .btn {
+  --cui-btn-color: rgba(0, 0, 0, 0.75);
+  --cui-btn-border-color: rgba(0, 0, 0, 0.35);
+}
+
+.mbyte-userblock__actions .btn:hover,
+.mbyte-userblock__actions .btn:focus {
+  --cui-btn-bg: rgba(0, 0, 0, 0.06);
+  --cui-btn-border-color: rgba(0, 0, 0, 0.45);
+}

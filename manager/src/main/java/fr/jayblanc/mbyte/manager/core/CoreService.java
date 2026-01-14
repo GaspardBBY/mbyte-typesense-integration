@@ -17,11 +17,18 @@
 package fr.jayblanc.mbyte.manager.core;
 
 import fr.jayblanc.mbyte.manager.core.entity.Store;
+import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+
+import java.util.List;
 
 public interface CoreService {
 
-    Store createStore(String name);
+    String createStore(String name) throws CoreServiceException;
 
-    Store getConnectedUserStore() throws StoreNotFoundException, CoreServiceException;
+    List<String> listConnectedUserStores();
+
+    Store getStore(String id) throws StoreNotFoundException, AccessDeniedException, CoreServiceException;
+
+    // void dropStore(String id) throws StoreNotFoundException, CoreServiceException;
 
 }
