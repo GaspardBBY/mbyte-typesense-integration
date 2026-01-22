@@ -1,23 +1,25 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import {useState} from 'react'
+import {useTranslation} from 'react-i18next'
+import {Navigate, Route, Routes} from 'react-router-dom'
 import './App.css'
-import { RequireAuth } from './auth/RequireAuth'
-import { RequireStore } from './auth/RequireStore'
-import { DashboardPage } from './pages/DashboardPage'
-import { NotFoundPage } from './pages/NotFoundPage'
-import { StorePage } from './pages/StorePage'
-import { Header, SideBar } from './components'
-import {
-  CToast,
-  CToastBody,
-  CToastHeader,
-} from '@coreui/react'
+import {RequireAuth} from './auth/RequireAuth'
+import {DashboardPage} from './pages/DashboardPage'
+import {NotFoundPage} from './pages/NotFoundPage'
+import {StorePage} from './pages/StorePage'
+import {Header, SideBar} from './components'
+import {CToast, CToastBody, CToastHeader,} from '@coreui/react'
+import {RequireStore} from "./auth/RequireStore.tsx";
 
 export default function App() {
   const { t } = useTranslation()
   const [sidebarNarrow, setSidebarNarrow] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
   const [showToast, setShowToast] = useState(false)
+
+  const handleNotify = (message: string) => {
+    setToastMessage(message)
+    setShowToast(true)
+  }
 
   return (
     <RequireAuth>
@@ -33,7 +35,7 @@ export default function App() {
                   <Navigate to="/dashboard" replace />}
               />
               <Route path="/dashboard" element={
-                  <DashboardPage onNotify={() => setShowToast(true)} />}
+                  <DashboardPage onNotify={handleNotify} />}
               />
               <Route path="/s/:index/" element={
                   <RequireStore>
@@ -51,7 +53,7 @@ export default function App() {
                     <strong className="me-auto">{t('common.appName')}</strong>
                     <small>{t('common.now')}</small>
                   </CToastHeader>
-                  <CToastBody>{t('common.testNotification')}</CToastBody>
+                  <CToastBody>{toastMessage}</CToastBody>
                 </CToast>
               </div>
             )}

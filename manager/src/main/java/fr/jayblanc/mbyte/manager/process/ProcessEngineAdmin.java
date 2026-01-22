@@ -23,12 +23,12 @@ import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
  */
 public interface ProcessEngineAdmin {
 
-    void assignTask(String processId, int taskId, String jobId) throws ProcessNotFoundException;
+    void assignTask(String processId, String taskId, String jobId) throws ProcessNotFoundException;
 
-    void startTask(String processId, int taskId) throws ProcessNotFoundException;
+    void startTask(String processId, String taskId) throws ProcessNotFoundException;
 
-    void completeTask(String processId, int taskId, ProcessContext ctx) throws ProcessNotFoundException;
+    void completeTask(String processId, String taskId, String taskLog, ProcessContext ctx) throws ProcessNotFoundException;
 
-    void failTask(String processId, int taskId, ProcessContext ctx, TaskException wte);
+    void failTask(String processId, String taskId, String taskLog, TaskException wte, ProcessContext ctx);
 
 }

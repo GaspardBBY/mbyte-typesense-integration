@@ -16,12 +16,12 @@
  */
 package fr.jayblanc.mbyte.manager.core;
 
-import fr.jayblanc.mbyte.manager.core.entity.Store;
+import fr.jayblanc.mbyte.manager.core.entity.Application;
 
 public interface CoreServiceAdmin {
 
-    Store systemGetStore(String id) throws StoreNotFoundException, CoreServiceException;
+    Application systemGetApp(String id) throws ApplicationNotFoundException;
 
-    void systemUpdateStoreStatus(String id, Store.Status status) throws StoreNotFoundException, CoreServiceException;
+    void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException;
 
 }

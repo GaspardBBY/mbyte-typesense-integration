@@ -16,7 +16,7 @@
  */
 package fr.jayblanc.mbyte.manager.process;
 
-import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
 import fr.jayblanc.mbyte.manager.process.entity.Process;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessStatus;
 import io.quarkus.test.junit.QuarkusTest;
@@ -24,6 +24,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @QuarkusTest
 public class ProcessEngineTest {
 
-    private static Logger LOGGER = Logger.getLogger(ProcessEngineTest.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(ProcessEngineTest.class.getName());
 
     @Inject ProcessEngine engine;
 
@@ -45,8 +46,7 @@ public class ProcessEngineTest {
             throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestDummyProcess")
-                .addTask(DummyTestTaskHandler.TASK_NAME)
-                .setTaskContextEntry(DummyTestTaskHandler.HELLO_NAME, "Sheldon")
+                .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Sheldon"))
                 .build();
         String pid = engine.startProcess(definition);
 
@@ -69,10 +69,11 @@ public class ProcessEngineTest {
         assertEquals(ProcessStatus.COMPLETED, process.getStatus());
         assertTrue(process.getCreationDate() <= process.getStartDate(), "The start date should be after the creation date");
         assertTrue(process.getStartDate() < process.getEndDate(), "The end date should be after the start date");
-        assertFalse(process.getContext().getLog().isEmpty());
-        assertEquals("Hello Sheldon !", process.getContext().getStringValue(DummyTestTaskHandler.HELLO));
-        LOGGER.log(Level.INFO, process.getContext().getLog());
-        assertTrue(process.getContext().getLog().contains(DummyTestTaskHandler.TASK_NAME.concat(" executed successfully")), "The log should contain the task execution log");
+        assertFalse(process.getLog().isEmpty());
+        assertTrue(process.getContext().getStringValue(DummyTestTask.HELLO).isPresent());
+        assertEquals("Hello Sheldon !", process.getContext().getStringValue(DummyTestTask.HELLO).get());
+        LOGGER.log(Level.INFO, process.getLog());
+        assertTrue(process.getLog().contains(DummyTestTask.TASK_NAME.concat(" executed successfully")), "The log should contain the task execution log");
     }
 
     @Test
@@ -81,10 +82,8 @@ public class ProcessEngineTest {
             throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestDoubleDummyProcess")
-                .addTask(DummyTestTaskHandler.TASK_NAME)
-                .setTaskContextEntry(DummyTestTaskHandler.HELLO_NAME, "Sheldon")
-                .addTask(DummyTestTaskHandler.TASK_NAME)
-                .setTaskContextEntry(DummyTestTaskHandler.HELLO_NAME, "Rajesh")
+                .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Sheldon"))
+                .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Rajesh"))
                 .build();
         String pid = engine.startProcess(definition);
 
@@ -97,9 +96,9 @@ public class ProcessEngineTest {
             };
             process = engine.getProcess(pid);
         }
-
         assertEquals("TestDoubleDummyProcess", process.getName(), "The name should not have changed");
-        assertEquals("Hello Rajesh !", process.getContext().getStringValue(DummyTestTaskHandler.HELLO));
+        assertTrue(process.getContext().getStringValue(DummyTestTask.HELLO).isPresent());
+        assertEquals("Hello Rajesh !", process.getContext().getStringValue(DummyTestTask.HELLO).get());
     }
 
     @Test
@@ -108,9 +107,8 @@ public class ProcessEngineTest {
             throws InterruptedException, AccessDeniedException, ProcessNotFoundException, ProcessAlreadyRunningException {
         ProcessDefinition definition = ProcessDefinition.builder()
                 .withName("TestFailingProcess")
-                .addTask(DummyTestTaskHandler.TASK_NAME)
-                .setTaskContextEntry(DummyTestTaskHandler.HELLO_NAME, "Rajesh")
-                .addTask(FailingTestTaskHandler.NAME)
+                .addTask(DummyTestTask.TASK_NAME, Map.of(DummyTestTask.HELLO_NAME, "Rajesh"))
+                .addTask(FailingTestTask.NAME)
                 .build();
         String pid = engine.startProcess(definition);
 
@@ -130,6 +128,6 @@ public class ProcessEngineTest {
         assertEquals(ProcessStatus.FAILED, process.getStatus());
         assertTrue(process.getCreationDate() <= process.getStartDate(), "The start date should be after the creation date");
         assertTrue(process.getStartDate() < process.getEndDate(), "The end date should be after the start date");
-        assertFalse(process.getContext().getLog().isEmpty());
+        assertFalse(process.getLog().isEmpty());
     }
 }

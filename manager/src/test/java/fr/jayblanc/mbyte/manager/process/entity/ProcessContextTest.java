@@ -26,30 +26,53 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ProcessContextTest {
 
     @Test
-    public void testProcessContextLog() {
-        ProcessContext context = new ProcessContext();
-        context.appendLog("First log entry.\n");
-        context.appendLog("Second log entry.\n");
-        String log = context.getLogger().toString();
-        assertTrue(log.contains("First log entry."));
-        assertTrue(log.contains("Second log entry."));
-    }
-
-    @Test
     public void testProcessContextEntries() {
         ProcessContext context = new ProcessContext();
         context.setValue("task1", "key1", "value1");
         context.setValue("task2", "key1", 42);
         context.setValue("key2", "value2");
 
-        assertEquals("value1", context.getStringValue("task1", "key1"));
-        assertEquals(42, context.getValue("task2", "key1", Integer.class));
-        assertNull(context.getValue("task2", "key2", Integer.class));
-        assertNull(context.getValue("task1", "key2", Integer.class));
-        assertNotNull(context.getStringValue("key2"));
-        assertEquals("value2", context.getStringValue("key2"));
-        assertEquals("value2", context.getStringValue("task1", "key2"));
-        assertEquals("value2", context.getStringValue("task2", "key2"));
+        assertTrue(context.getStringValue("task1", "key1").isPresent());
+        assertEquals("value1", context.getStringValue("task1", "key1").get());
+        assertTrue(context.getValue("task2", "key1", Integer.class).isPresent());
+        assertEquals(42, context.getValue("task2", "key1", Integer.class).get());
+        assertFalse(context.getValue("task2", "key2", Integer.class).isPresent());
+        assertFalse(context.getValue("task1", "key2", Integer.class).isPresent());
+        assertTrue(context.getStringValue("key2").isPresent());
+        assertEquals("value2", context.getStringValue("key2").get());
+        assertTrue(context.getStringValue("task1", "key2").isPresent());
+        assertEquals("value2", context.getStringValue("task1", "key2").get());
+        assertTrue(context.getStringValue("task2", "key2").isPresent());
+        assertEquals("value2", context.getStringValue("task2", "key2").get());
+    }
+
+    @Test
+    public void testProcessContextEntriesWithVar() {
+        ProcessContext context = new ProcessContext();
+        context.setValue( "global_key", "global_value");
+        context.setValue("task1", "key", "$global_key");
+        context.setValue("task2", "key", "$global_key");
+
+        assertTrue(context.getStringValue( "global_key").isPresent());
+        assertEquals("global_value", context.getStringValue( "global_key").get());
+        assertTrue(context.getStringValue( "task1", "global_key").isPresent());
+        assertEquals("global_value", context.getStringValue( "task1", "global_key").get());
+        assertTrue(context.getStringValue( "task2", "global_key").isPresent());
+        assertEquals("global_value", context.getStringValue( "task2", "global_key").get());
+    }
+
+    @Test
+    public void testProcessContextEntriesWithVarLoop() {
+        ProcessContext context = new ProcessContext();
+        context.setValue( "global_key", "global_value");
+        context.setValue( "loop_key", "$global_key");
+        context.setValue("task1", "key", "$loop_key");
+        context.setValue("task2", "global_key", "$loop_key");
+
+        assertTrue(context.getStringValue("task1", "key").isPresent());
+        assertEquals("global_value", context.getStringValue("task1", "key").get());
+
+        assertFalse(context.getStringValue("task2", "loop_key").isPresent());
     }
 
 }

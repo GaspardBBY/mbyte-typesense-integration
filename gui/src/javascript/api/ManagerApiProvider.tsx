@@ -3,14 +3,20 @@ import { createManagerApi } from './managerApi'
 import type { Profile } from './entities/Profile'
 import type { TokenProvider } from './fetchWithAuth'
 import { useAccessToken } from '../auth/useAccessToken'
+import type { Application } from './entities/Application'
+import type {Process} from "./entities/Process.ts";
 
 export type ManagerApi = {
   getHealth(): Promise<unknown>
   getCurrentProfile(): Promise<Profile>
-  listProfileStores(profileId: string): Promise<string[]>
-  getProfileStore(profileId: string, storeId: string): Promise<import('./entities/Store').Store>
-  getProfileStoreProcesses(profileId: string, storeId: string, active?: boolean): Promise<import('./entities/Process').Process[]>
-  createProfileStore(profileId: string, name: string): Promise<string>
+  // manager API: apps management
+  listApps(owner?: string): Promise<Application[]>
+  getApp(appId: string): Promise<Application>
+  createApp(type: string, name: string): Promise<string>
+  getAppProcs(appId: string, active: boolean): Promise<Process[]>
+  listAppCommands(appId: string): Promise<string[]>
+  runAppCommand(appId: string, commandName: string): Promise<string>
+  getAppProc(appId: string, procId: string): Promise<Process>
   getStatus(): Promise<import('./entities/ManagerStatus').ManagerStatus>
 }
 

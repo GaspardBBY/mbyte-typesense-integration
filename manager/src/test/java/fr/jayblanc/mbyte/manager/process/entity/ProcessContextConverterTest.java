@@ -28,8 +28,6 @@ class ProcessContextConverterTest {
     @Test
     void shouldSerializeAndDeserializeLogAndEntries() {
         ProcessContext context = new ProcessContext();
-        context.appendLog("First log entry.\n");
-        context.appendLog("Second log entry.\n");
         context.setValue("task1", "key1", "value1");
         context.setValue("task2", "key1", 42);
         context.setValue("key2", "value2");
@@ -42,17 +40,17 @@ class ProcessContextConverterTest {
         ProcessContext reconstructed = converter.convertToEntityAttribute(json);
         assertNotNull(reconstructed);
 
-        // log is stored via the "logger" property (StringBuilder) and should survive the round-trip
-        String reconstructedLog = reconstructed.getLogger().toString();
-        assertTrue(reconstructedLog.contains("First log entry."));
-        assertTrue(reconstructedLog.contains("Second log entry."));
-
         // entries should survive the round-trip and remain accessible via the public getters
-        assertEquals("value1", reconstructed.getStringValue("task1", "key1"));
-        assertEquals(42, reconstructed.getValue("task2", "key1", Integer.class));
-        assertEquals("value2", reconstructed.getStringValue("key2"));
-        assertEquals("value2", reconstructed.getStringValue("task1", "key2"));
-        assertEquals("value2", reconstructed.getStringValue("task2", "key2"));
+        assertTrue(reconstructed.getStringValue("task1", "key1").isPresent());
+        assertEquals("value1", reconstructed.getStringValue("task1", "key1").get());
+        assertTrue(reconstructed.getValue("task2", "key1", Integer.class).isPresent());
+        assertEquals(42, reconstructed.getValue("task2", "key1", Integer.class).get());
+        assertTrue(reconstructed.getStringValue("key2").isPresent());
+        assertEquals("value2", reconstructed.getStringValue("key2").get());
+        assertTrue(reconstructed.getStringValue("task1", "key2").isPresent());
+        assertEquals("value2", reconstructed.getStringValue("task1", "key2").get());
+        assertTrue(reconstructed.getStringValue("task2", "key2").isPresent());
+        assertEquals("value2", reconstructed.getStringValue("task2", "key2").get());
     }
 
     @Test

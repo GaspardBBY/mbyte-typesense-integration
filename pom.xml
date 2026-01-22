@@ -26,45 +26,9 @@
         </license>
     </licenses>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>com.mycila</groupId>
-                <artifactId>license-maven-plugin</artifactId>
-                <version>4.3</version>
-                <configuration>
-                    <properties>
-                        <year>2025</year>
-                        <owner>Jerome Blanchard</owner>
-                    </properties>
-                    <licenseSets>
-                        <licenseSet>
-                            <header>LICENSE_HEADER.txt</header>
-                            <includes>
-                                <include>**/*.java</include>
-                            </includes>
-                            <excludes>
-                                <exclude>**/target/**</exclude>
-                                <exclude>**/node_modules/**</exclude>
-                            </excludes>
-                        </licenseSet>
-                    </licenseSets>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
-
     <modules>
         <module>store</module>
         <module>manager</module>
         <module>gui</module>
     </modules>
 </project>
-

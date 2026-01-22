@@ -39,6 +39,9 @@ public class Profile {
     private String email;
 
     public Profile() {
+        this.username = "";
+        this.fullname = "";
+        this.email = "";
     }
 
     public String getId() {
@@ -82,7 +85,7 @@ public class Profile {
     }
 
     public String getGravatarHash() {
-        return DigestUtils.md5Hex(email);
+        return (email.isEmpty())? "" : DigestUtils.md5Hex(email);
     }
 
     @Override

@@ -17,13 +17,12 @@
 package fr.jayblanc.mbyte.manager.auth;
 
 import fr.jayblanc.mbyte.manager.auth.entity.Profile;
-import io.quarkus.oidc.IdToken;
+import io.quarkus.oidc.UserInfo;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,12 +30,12 @@ import java.util.logging.Logger;
 @RequestScoped
 public class AuthenticationServiceBean implements AuthenticationService {
 
-    private static final Logger LOGGER = Logger.getLogger(AuthenticationService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AuthenticationServiceBean.class.getName());
 
-    @Inject @IdToken JsonWebToken idToken;
     @Inject SecurityIdentity identity;
     @Inject AuthenticationConfig config;
     @Inject EntityManager em;
+    @Inject UserInfo userInfo;
 
     @Override
     public boolean isAuthentified() {
@@ -58,25 +57,45 @@ public class AuthenticationServiceBean implements AuthenticationService {
     public Profile getConnectedProfile() {
         LOGGER.log(Level.FINE, "Getting connected profile");
         String connectedId = getConnectedIdentifier();
-        LOGGER.log(Level.FINE, "Loading profile for connected identifier: " + connectedId);
+        LOGGER.log(Level.FINE, "Loading profile for connected identifier: {0}", connectedId);
         Profile profile = em.find(Profile.class, connectedId);
         if ( profile == null ) {
             Profile newprofile = new Profile();
             newprofile.setId(connectedId);
-            if (idToken.containsClaim("preferred_username")) {
-                newprofile.setUsername(idToken.getClaim("preferred_username"));
-            }
-            if (idToken.containsClaim("given_name") && idToken.containsClaim("family_name")) {
-                newprofile.setFullname(idToken.getClaim("given_name") + " " + idToken.getClaim("family_name"));
-            }
-            if (idToken.containsClaim("email")) {
-                newprofile.setEmail(idToken.getClaim("email"));
+            if (userInfo != null)  {
+                newprofile.setUsername(userInfo.getPreferredUserName());
+                newprofile.setFullname(userInfo.getName() + " " + userInfo.getFamilyName());
+                newprofile.setEmail(userInfo.getEmail());
+            } else {
+                LOGGER.log(Level.INFO, "Unable to access User Info");
             }
             em.persist(newprofile);
-            LOGGER.log(Level.FINE, "Profile created for identifier: " + connectedId);
+            LOGGER.log(Level.FINE, "Profile created for identifier: {0}", connectedId);
             profile = newprofile;
+        } else if (userInfo != null && !profile.getEmail().equals(userInfo.getEmail())) {
+            profile.setUsername(userInfo.getPreferredUserName());
+            profile.setFullname(userInfo.getName() + " " + userInfo.getFamilyName());
+            profile.setEmail(userInfo.getEmail());
+            LOGGER.log(Level.FINE, "Profile email updated for identifier: {0}", connectedId);
         }
-        LOGGER.log(Level.FINE, "Profile retrieved for connected identifier: " + profile);
+        LOGGER.log(Level.FINE, "Profile retrieved for connected identifier: {0}", profile);
+        return profile;
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public Profile getProfile(String id) throws ProfileNotFoundException {
+        LOGGER.log(Level.FINE, "Getting profile for id: {0}", id);
+        String connectedId = getConnectedIdentifier();
+        if (!id.equals(connectedId) && !isConnectedIdentifierInRoleAdmin()) {
+            throw new SecurityException("Access denied to profile: " + id);
+        }
+        LOGGER.log(Level.FINE, "Loading profile for id: {0}", id);
+        Profile profile = em.find(Profile.class, id);
+        if ( profile == null ) {
+            throw new ProfileNotFoundException("Profile not found for id: " + id);
+        }
+        LOGGER.log(Level.FINE, "Profile retrieved: {0}", profile);
         return profile;
     }
 

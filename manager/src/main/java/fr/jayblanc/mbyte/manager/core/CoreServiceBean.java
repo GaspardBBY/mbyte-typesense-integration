@@ -17,21 +17,21 @@
 package fr.jayblanc.mbyte.manager.core;
 
 import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
-import fr.jayblanc.mbyte.manager.core.entity.Store;
-import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.core.entity.Application;
+import fr.jayblanc.mbyte.manager.core.entity.Environment;
+import fr.jayblanc.mbyte.manager.core.entity.EnvironmentEntry;
 import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
-import fr.jayblanc.mbyte.manager.runtime.Runtime;
-import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderException;
-import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderNotFoundException;
+import fr.jayblanc.mbyte.manager.process.ProcessDefinition;
+import fr.jayblanc.mbyte.manager.process.ProcessEngine;
 import fr.jayblanc.mbyte.manager.topology.TopologyService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.NonUniqueResultException;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,88 +41,152 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     private static final Logger LOGGER = Logger.getLogger(CoreServiceBean.class.getName());
 
-    @Inject EntityManager em;
-    @Inject AuthenticationService authenticationService;
-    @Inject Runtime runtime;
+    @Inject AuthenticationService authentication;
+    @Inject ApplicationDescriptorRegistry appRegistry;
+    @Inject ApplicationCommandProvider commandsProvider;
+    @Inject ProcessEngine processEngine;
     @Inject TopologyService topology;
+    @Inject CoreConfig config;
+    @Inject EntityManager em;
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public String createStore(String name) {
-        LOGGER.log(Level.INFO, "Creating new store with name: " + name);
-        String id = UUID.randomUUID().toString();
-        Store store = new Store();
-        store.setId(id);
-        store.setName(name);
-        store.setCreationDate(System.currentTimeMillis());
-        store.setOwner(authenticationService.getConnectedProfile().getUsername());
-        store.setUsage(0);
-        store.setStatus(Store.Status.CREATED);
-        em.persist(store);
-        try {
-            String pid = runtime.getProvider().startStore(id, name, store.getOwner());
-            LOGGER.log(Level.INFO, "Start Store Process pid: " + pid);
-        } catch (RuntimeProviderException | RuntimeProviderNotFoundException | ProcessAlreadyRunningException e ) {
-            LOGGER.log(Level.INFO, "Unable to start store, see logs", e);
+    public String createApp(String type, String name) throws ApplicationDescriptorNotFoundException {
+        LOGGER.log(Level.INFO, "Creating new application of type: {0} with name: {1}", new Object[] {type, name});
+        String appid = UUID.randomUUID().toString();
+        Application application = new Application();
+        application.setId(appid);
+        application.setName(name);
+        application.setType(type);
+        application.setCreationDate(System.currentTimeMillis());
+        application.setOwner(authentication.getConnectedIdentifier());
+        application.setStatus(ApplicationStatus.CREATED);
+        em.persist(application);
+        Environment initialEnv = appRegistry.findDescriptor(type).getInitialEnv(config.instance(), appid, name, application.getOwner());
+        em.persist(initialEnv);
+        return appid;
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.SUPPORTS)
+    public Environment getAppEnv(String id) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException {
+        LOGGER.log(Level.INFO, "Getting environment for app id: {0}", id);
+        Application app = this.getApp(id);
+        return this.findEnvByApp(app.getId());
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public Environment updateAppEnv(String id, Set<EnvironmentEntry> entries) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException {
+        LOGGER.log(Level.INFO, "Updating environment for app id: {0}", id);
+        Application app = this.getApp(id);
+        Environment env = this.findEnvByApp(app.getId());
+        env.addAll(entries);
+        return env;
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public String runAppCommand(String id, String name, Map<String, String> params)
+            throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, ApplicationCommandNotFoundException,
+            ProcessAlreadyRunningException {
+        LOGGER.log(Level.INFO, "Running command: {0} for app id: {1}", new  Object[]{name, id});
+        Application app = this.getApp(id);
+        Environment env = this.findEnvByApp(app.getId());
+        ApplicationCommand command = commandsProvider.findCommand(app.getType(), name);
+        ProcessDefinition definition = command.buildProcessDefinition(env);
+        String pid = processEngine.startProcess(definition);
+        LOGGER.log(Level.INFO, "Started command's process: {0}",  pid);
+        return pid;
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public List<Application> listConnectedUserApps() {
+        LOGGER.log(Level.INFO, "Listing applications for connected user");
+        String owner = authentication.getConnectedIdentifier();
+        return findAppsByOwner(owner);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public List<Application> listApps(String owner) {
+        LOGGER.log(Level.INFO, "Listing all applications");
+        String connected = authentication.getConnectedIdentifier();
+        if (owner == null || owner.isEmpty() || !connected.equals(owner)) {
+            if (authentication.isConnectedIdentifierInRoleAdmin()) {
+                return em.createNamedQuery("Application.findAll", Application.class).getResultList();
+            } else {
+                throw new SecurityException("Access denied to list applications for " + ((owner == null || owner.isEmpty())?"all users":"owner: " + owner));
+            }
         }
-        return id;
+        return findAppsByOwner(connected);
     }
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public List<String> listConnectedUserStores() {
-        LOGGER.log(Level.INFO, "Listing stores for connected user");
-        String owner = authenticationService.getConnectedProfile().getUsername();
-        return findStoresByOwner(owner);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public Store getStore(String id) throws StoreNotFoundException, AccessDeniedException {
-        LOGGER.log(Level.INFO, "Getting store for id: " + id);
-        Store store = findStoreById(id);
-        if ( !authenticationService.getConnectedProfile().getUsername().equals(store.getOwner()) ) {
-            throw new AccessDeniedException("Access denied to store for id: " + id);
+    public Application getApp(String id) throws ApplicationNotFoundException, AccessDeniedException {
+        LOGGER.log(Level.INFO, "Getting application for id: {0}", id);
+        Application application = findAppById(id);
+        if ( !authentication.getConnectedIdentifier().equals(application.getOwner()) ) {
+            throw new AccessDeniedException("Access denied to application with id: " + id);
         }
-        store.setLocation(locateStore(id));
-        return store;
+        return application;
     }
 
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
-    public Store systemGetStore(String id) throws StoreNotFoundException {
-        LOGGER.log(Level.INFO, "Getting store for id: " + id);
-        return findStoreById(id);
+    public void dropApp(String id) throws ApplicationNotFoundException {
+        LOGGER.log(Level.INFO, "Dropping application for id: {0}", id);
+        Application application  = findAppById(id);
+        em.remove(application);
+    }
+
+    @Override
+    @Transactional(Transactional.TxType.REQUIRED)
+    public Application systemGetApp(String id) throws ApplicationNotFoundException {
+        LOGGER.log(Level.INFO, "Getting application for id: {0}", id);
+        return findAppById(id);
     }
 
     @Override
     @Transactional(Transactional.TxType.REQUIRES_NEW)
-    public void systemUpdateStoreStatus(String id, Store.Status status) throws StoreNotFoundException {
-        LOGGER.log(Level.INFO, "## SYSTEM ## Updating store status for id: " + id + " to status: " + status);
-        Store store = findStoreById(id);
-        store.setStatus(status);
-        em.merge(store);
+    public void systemUpdateAppStatus(String id, ApplicationStatus status) throws ApplicationNotFoundException {
+        LOGGER.log(Level.INFO, "## SYSTEM ## Updating application status for id: {0} to status: {1}", new Object[]{id, status});
+        Application application = findAppById(id);
+        application.setStatus(status);
     }
 
-    private Store findStoreById(String id) throws StoreNotFoundException {
-        Store store = em.find(Store.class, id);
-        if ( store == null ) {
-            throw new StoreNotFoundException("Unable to find a store for id: " + id);
+    private Environment findEnvByApp(String appId) throws EnvironmentNotFoundException {
+        List<Environment> envs = em.createNamedQuery("Environment.findByApp", Environment.class).setParameter("app", appId).getResultList();
+        if ( envs == null || envs.isEmpty() ) {
+            throw new EnvironmentNotFoundException("Unable to find an environment for app with id: " + appId);
         }
-        return store;
+        if ( envs.size() > 1 ) {
+            LOGGER.log(Level.WARNING, "Multiple environments found for app with id: {}, returning the first one", appId);
+        }
+        return envs.getFirst();
     }
 
-    private List<String> findStoresByOwner(String owner) {
-        return em.createNamedQuery("Store.findIdByOwner", String.class).setParameter("owner", owner).getResultList();
+    private Application findAppById(String id) throws ApplicationNotFoundException {
+        Application application = em.find(Application.class, id);
+        if ( application == null ) {
+            throw new ApplicationNotFoundException("Unable to find an application for id: " + id);
+        }
+        return application;
     }
 
-    private String locateStore(String id) {
+    private List<Application> findAppsByOwner(String owner) {
+        return em.createNamedQuery("Application.findByOwner", Application.class).setParameter("owner", owner).getResultList();
+    }
+
+    private String locateApp(String id) {
         String location = topology.lookup(id);
         if ( location != null ) {
-            LOGGER.log(Level.INFO, "Store instance located at: " + location);
+            LOGGER.log(Level.INFO, "Application instance located at: {0}", location);
             return location;
         }
-        LOGGER.log(Level.INFO, "Unable to locate store in the topology");
+        LOGGER.log(Level.INFO, "Unable to locate application in the topology");
         return "## unavailable ##";
     }
 

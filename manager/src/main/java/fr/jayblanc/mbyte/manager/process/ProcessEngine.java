@@ -16,7 +16,7 @@
  */
 package fr.jayblanc.mbyte.manager.process;
 
-import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
 import fr.jayblanc.mbyte.manager.process.entity.Process;
 
 import java.util.List;
@@ -30,8 +30,8 @@ public interface ProcessEngine {
 
     Process getProcess(String id) throws ProcessNotFoundException, AccessDeniedException;
 
-    List<Process> findRunningProcessesForStore(String storeId);
+    List<Process> findRunningProcessesForApp(String appId);
 
-    List<Process> findAllProcessesForStore(String storeId);
+    List<Process> findAllProcessesForApp(String appId);
 
 }

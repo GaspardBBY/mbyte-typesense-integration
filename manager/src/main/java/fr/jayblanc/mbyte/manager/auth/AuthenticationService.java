@@ -17,6 +17,7 @@
 package fr.jayblanc.mbyte.manager.auth;
 
 import fr.jayblanc.mbyte.manager.auth.entity.Profile;
+import fr.jayblanc.mbyte.manager.core.AccessDeniedException;
 
 public interface AuthenticationService {
 
@@ -29,5 +30,7 @@ public interface AuthenticationService {
     boolean isConnectedIdentifierInRoleAdmin();
 
     Profile getConnectedProfile();
+
+    Profile getProfile(String id) throws AccessDeniedException, ProfileNotFoundException;
 
 }

@@ -1,13 +1,13 @@
-import { CNavItem, CDropdown, CDropdownItem, CDropdownMenu, CDropdownToggle } from '@coreui/react'
-import { CIcon } from '@coreui/icons-react'
-import { cilGlobeAlt } from '@coreui/icons'
-import { useTranslation } from 'react-i18next'
+import {CDropdown, CDropdownItem, CDropdownMenu, CDropdownToggle} from '@coreui/react'
+import {CIcon} from '@coreui/icons-react'
+import {cilGlobeAlt} from '@coreui/icons'
+import {useTranslation} from 'react-i18next'
 
 export function HeaderLanguage() {
   const { t, i18n } = useTranslation()
 
   return (
-    <CNavItem className="d-flex align-items-center">
+    <div className="d-flex align-items-center">
       <CDropdown variant="nav-item" alignment="end">
         <CDropdownToggle
           color="link"
@@ -36,7 +36,7 @@ export function HeaderLanguage() {
           </CDropdownItem>
         </CDropdownMenu>
       </CDropdown>
-    </CNavItem>
+    </div>
   )
 }
 

@@ -3,6 +3,7 @@
     "appName": "mbyte",
     "now": "à l’instant",
     "user": "Utilisateur",
+    "unknown": "Inconnu",
     "testNotification": "Notification de test via CoreUI."
   },
   "auth": {
@@ -27,9 +28,24 @@
       "rateLimit": "Rate Limit : 1000 req/s",
       "downloadQuota": "Quota de téléchargement : 1Go/mois",
       "price": "Prix :",
-      "startNow": "Start now",
+      "startNow": "Create now",
       "creationInProgress": "Création en cours…"
-    }
+    },
+    "storeDetail": {
+      "title": "Détails du Store",
+      "id": "ID",
+      "name": "Nom",
+      "type": "Type",
+      "status": "Statut",
+      "creationDate": "Date de création",
+      "createdSince": "Créé depuis",
+      "start": "Démarrer",
+      "refresh": "Actualiser",
+      "starting": "Démarrage...",
+      "running": "En cours..."
+    },
+    "storeCreated": "Store créé avec succès",
+    "storeCreationFailed": "Échec de la création du store"
   },
   "i18n": {
     "switchToFrench": "Basculer la langue en français",

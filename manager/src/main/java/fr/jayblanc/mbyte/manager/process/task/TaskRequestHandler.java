@@ -18,7 +18,7 @@ package fr.jayblanc.mbyte.manager.process.task;
 
 import fr.jayblanc.mbyte.manager.process.ProcessEngineAdmin;
 import fr.jayblanc.mbyte.manager.process.TaskException;
-import fr.jayblanc.mbyte.manager.process.TaskHandler;
+import fr.jayblanc.mbyte.manager.process.Task;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
@@ -39,7 +39,7 @@ public class TaskRequestHandler implements JobRequestHandler<TaskRequest> {
     private static final Logger LOGGER = Logger.getLogger(TaskRequestHandler.class.getName());
 
     @Inject UserTransaction tx;
-    @Inject Instance<TaskHandler> handlers;
+    @Inject Instance<Task> handlers;
     @Inject ProcessEngineAdmin engine;
 
     @PostConstruct
@@ -52,24 +52,24 @@ public class TaskRequestHandler implements JobRequestHandler<TaskRequest> {
         try {
             LOGGER.log(Level.INFO, "Starting process task request handler");
             tx.begin();
-            Optional<TaskHandler> taskHandler = handlers.stream().filter(t -> t.getTaskName().equals(taskRequest.getTaskType())).findFirst();
+            Optional<Task> taskHandler = handlers.stream().filter(t -> t.getTaskName().equals(taskRequest.getTaskType())).findFirst();
             try {
                 if (taskHandler.isPresent()) {
-                    TaskHandler handler = taskHandler.get();
+                    Task handler = taskHandler.get();
                     handler.setTaskId(taskRequest.getTaskId());
                     handler.setContext(taskRequest.getContext());
-                    LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: starting task of type " + taskRequest.getTaskType());
+                    LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: starting");
                     engine.startTask(taskRequest.getProcessId(), taskRequest.getTaskId());
                     handler.execute();
-                    LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: task completed successfully");
-                    engine.completeTask(taskRequest.getProcessId(), taskRequest.getTaskId(), taskRequest.getContext());
+                    LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: completed successfully");
+                    engine.completeTask(taskRequest.getProcessId(), taskRequest.getTaskId(), handler.getLog(), handler.getContext());
                 } else {
                     LOGGER.log(Level.SEVERE, "No process task handler found for task type: " + taskRequest.getTaskType());
                     throw new TaskException("No process task handler found for task type: " + taskRequest.getTaskType());
                 }
             } catch (TaskException wte) {
-                LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: task failed with exception: " + wte.getMessage());
-                engine.failTask(taskRequest.getProcessId(), taskRequest.getTaskId(), taskRequest.getContext(), wte);
+                LOGGER.info( "Process." + taskRequest.getProcessName() + "[" + taskRequest.getProcessId() + "]" + ".task[" + taskRequest.getTaskId() + "]: failed with exception: " + wte.getMessage());
+                engine.failTask(taskRequest.getProcessId(), taskRequest.getTaskId(), taskHandler.isPresent()?taskHandler.get().getLog():"", wte, taskHandler.isPresent()?taskHandler.get().getContext():null);
             }
             tx.commit();
         } catch (Exception e) {

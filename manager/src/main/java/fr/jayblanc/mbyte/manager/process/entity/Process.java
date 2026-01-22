@@ -17,10 +17,12 @@
 package fr.jayblanc.mbyte.manager.process.entity;
 
 import fr.jayblanc.mbyte.manager.process.ProcessDefinition;
+import fr.jayblanc.mbyte.manager.process.Task;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,31 +33,33 @@ import java.util.stream.Collectors;
 @Entity
 @NamedQueries({
         @NamedQuery(name = "Process.findByOwner", query = "SELECT p FROM Process p WHERE p.owner = :owner"),
-        @NamedQuery(name = "Process.findByStore", query = "SELECT p FROM Process p WHERE p.store = :store"),
-        @NamedQuery(name = "Process.findByStoreAndStatus", query = "SELECT p FROM Process p WHERE p.store = :store AND p.status IN :status")
+        @NamedQuery(name = "Process.findByApp", query = "SELECT p FROM Process p WHERE p.appId = :appId"),
+        @NamedQuery(name = "Process.findByAppAndStatus", query = "SELECT p FROM Process p WHERE p.appId = :appId AND p.status IN :status")
 })
-@Table(indexes = {
+@Table( name="proc",
+        indexes = {
         @Index(name = "process_idx", columnList = "owner"),
-        @Index(name = "process_idx", columnList = "store"),
-        @Index(name = "process_idx", columnList = "store, status")
+        @Index(name = "process_idx", columnList = "appId"),
+        @Index(name = "process_idx", columnList = "appId, status")
 })
 public class Process {
 
     @Id
     private String id;
     private String owner;
-    private String store;
+    private String appId;
     private String name;
-    @Column(name = "tasks")
     private String tasks;
     @Transient
     private List<String> taskList;
     @Lob
     @Convert(converter = ProcessContextConverter.class)
     private ProcessContext context;
+    @Lob
+    private String log;
     @Enumerated(EnumType.STRING)
     private ProcessStatus status;
-    private int nextTaskId;
+    private String nextTaskId;
     private String runningTaskJobId;
     private Long creationDate = -1L;
     private Long startDate = -1L;
@@ -64,16 +68,16 @@ public class Process {
     public Process() {
     }
 
-    public Process(ProcessDefinition process) {
+    public Process(ProcessDefinition definition) {
         this.id = UUID.randomUUID().toString();
-        this.store = process.getStore();
-        this.name = process.getName();
-        this.tasks = String.join(",", process.getTasks());
-        this.taskList = process.getTasks();
-        this.context = process.getContext();
-        this.nextTaskId = 0;
+        this.appId = definition.getAppId();
+        this.name = definition.getName();
+        this.tasks = String.join(",", definition.getTasks());
+        this.taskList = definition.getTasks();
+        this.context = definition.getContext();
         this.creationDate = System.currentTimeMillis();
         this.status = ProcessStatus.CREATED;
+        this.log = "";
     }
 
     public String getId() {
@@ -84,20 +88,20 @@ public class Process {
         this.id = id;
     }
 
+    public String getAppId() {
+        return appId;
+    }
+
+    public void setAppId(String appId) {
+        this.appId = appId;
+    }
+
     public String getOwner() {
         return owner;
     }
 
     public void setOwner(String owner) {
         this.owner = owner;
-    }
-
-    public String getStore() {
-        return store;
-    }
-
-    public void setStore(String store) {
-        this.store = store;
     }
 
     public String getName() {
@@ -132,6 +136,19 @@ public class Process {
         this.context = context;
     }
 
+    public String getLog() {
+        return log;
+    }
+
+    public void setLog(String log) {
+        this.log = log;
+    }
+
+    public Process appendLog(String value) {
+        this.log = this.log.concat(value);
+        return this;
+    }
+
     public ProcessStatus getStatus() {
         return status;
     }
@@ -140,21 +157,40 @@ public class Process {
         this.status = status;
     }
 
-    public int getNextTaskId() {
+    public String getNextTaskId() {
         return nextTaskId;
     }
 
-    public void setNextTaskId(int nextTaskIndex) {
-        this.nextTaskId = nextTaskIndex;
+    public void setNextTaskId(String nextTaskId) {
+        this.nextTaskId = nextTaskId;
     }
 
-    public void incNextTaskIndex() {
-        this.nextTaskId++;
+    public boolean hasNextTask() {
+        if (this.isFinished() || this.nextTaskId == null) {
+            return false;
+        }
+        return this.getTaskList().contains(this.nextTaskId);
     }
 
-    public String getNextTask() {
-        return (!this.isFinished() && this.getTasks() != null && this.getTaskList().size() >= nextTaskId) ?
-                this.getTaskList().get(nextTaskId -1) : null;
+    public String findFirstTask() {
+        List<String> ordered = getOrderedTasks();
+        return ordered.isEmpty() ? null : ordered.get(0);
+    }
+
+    public String findNextTask(String taskId) {
+        List<String> ordered = getOrderedTasks();
+        if (ordered.isEmpty() || taskId == null) {
+            return null;
+        }
+        int idx = ordered.indexOf(taskId);
+        if (idx < 0) {
+            return null;
+        }
+        int nextIdx = idx + 1;
+        if (nextIdx >= ordered.size()) {
+            return null;
+        }
+        return ordered.get(nextIdx);
     }
 
     public String getRunningTaskJobId() {
@@ -195,5 +231,44 @@ public class Process {
 
     public boolean isFinished() {
         return status.isFinal();
+    }
+
+
+    private synchronized List<String> getOrderedTasks() {
+        List<String> list = getTaskList();
+        list.sort(TASK_ID_COMPARATOR);
+        return list;
+    }
+
+    private static final Comparator<String> TASK_ID_COMPARATOR = Comparator
+            .comparingInt((String t) -> parseTaskNumber(t).orElse(Integer.MAX_VALUE))
+            .thenComparing(Process::parseTaskType, Comparator.nullsLast(String::compareTo))
+            .thenComparing(Comparator.nullsLast(String::compareTo));
+
+    private static java.util.OptionalInt parseTaskNumber(String taskId) {
+        if (taskId == null) {
+            return java.util.OptionalInt.empty();
+        }
+        int dot = taskId.indexOf('.');
+        if (dot <= 0) {
+            return java.util.OptionalInt.empty();
+        }
+        String prefix = taskId.substring(0, dot);
+        try {
+            return java.util.OptionalInt.of(Integer.parseInt(prefix));
+        } catch (NumberFormatException e) {
+            return java.util.OptionalInt.empty();
+        }
+    }
+
+    private static String parseTaskType(String taskId) {
+        if (taskId == null) {
+            return null;
+        }
+        int dot = taskId.indexOf('.');
+        if (dot < 0 || dot == taskId.length() - 1) {
+            return null;
+        }
+        return taskId.substring(dot + 1);
     }
 }

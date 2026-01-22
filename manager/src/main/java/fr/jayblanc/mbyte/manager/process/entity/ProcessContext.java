@@ -19,8 +19,7 @@ package fr.jayblanc.mbyte.manager.process.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,24 +29,14 @@ import java.util.logging.Logger;
 public class ProcessContext {
 
     private static final Logger LOGGER = Logger.getLogger(ProcessContext.class.getName());
+    private static final String VAR_PREFIX = "$";
 
-    public static final String GLOBAL_SCOPE = "global";
-    public static final String TASK_SCOPE_PREFIX = "task_";
+    public static final String GLOBAL_SCOPE = "global_scope";
 
-    private StringBuilder logger;
     private Map<String, Map<String, Serializable>> entries;
 
     public ProcessContext() {
-        this.logger = new StringBuilder();
         this.entries = new HashMap<>();
-    }
-
-    public StringBuilder getLogger() {
-        return logger;
-    }
-
-    public void setLogger(StringBuilder logger) {
-        this.logger = logger;
     }
 
     public Map<String, Map<String, Serializable>> getEntries() {
@@ -58,58 +47,50 @@ public class ProcessContext {
         this.entries = entries;
     }
 
-    public ProcessContext appendLog(String log) {
-        this.logger.append(log);
-        return this;
-    }
-
-    public ProcessContext appendLog(Object log) {
-        this.logger.append(log);
-        return this;
-    }
-
     @JsonIgnore
-    public String getLog() {
-        return logger.toString();
-    }
-
-    @JsonIgnore
-    public String getStringValue(String key) {
+    public Optional<String> getStringValue(String key) {
         return getStringValue(GLOBAL_SCOPE, key);
     }
 
     @JsonIgnore
-    public String getStringValue(String scope, String key) {
-        Map<String, Serializable> scopeEntries = getScopeEntries(scope);
-        if (!scopeEntries.containsKey(key)) {
-            scopeEntries = getScopeEntries(GLOBAL_SCOPE);
-        }
-        Object value = scopeEntries.get(key);
-        if (value instanceof String) {
-            return (String) value;
-        }
-        return null;
+    public Optional<String> getStringValue(String scope, String key) {
+        return internalValue(scope, key, String.class, new HashSet<>());
     }
 
     @JsonIgnore
-    public <T> T getValue(String key, Class<T> clazz) {
+    public <T> Optional<T> getValue(String key, Class<T> clazz) {
         return getValue(GLOBAL_SCOPE, key, clazz);
     }
 
     @JsonIgnore
-    public <T> T getValue(String scope, String key, Class<T> clazz) {
+    public <T> Optional<T> getValue(String scope, String key, Class<T> clazz) {
+        return internalValue(scope, key, clazz, new HashSet<>());
+    }
+
+    @JsonIgnore
+    private <T> Optional<T> internalValue(String scope, String key, Class<T> clazz, Set<String> visitedKeys) {
         Map<String, Serializable> scopeEntries = getScopeEntries(scope);
         if (!scopeEntries.containsKey(key)) {
             scopeEntries = getScopeEntries(GLOBAL_SCOPE);
         }
         Object value = scopeEntries.get(key);
         if (value == null || clazz == null) {
-            return null;
+            return Optional.empty();
+        }
+        if (value instanceof String && ((String) value).startsWith(VAR_PREFIX)) {
+            // Value is a variable, go to the target variable (include loop detection)
+            String targetKey = ((String) value).substring(VAR_PREFIX.length());
+            if (visitedKeys.contains(targetKey)) {
+                LOGGER.log(Level.WARNING, "Detected variable reference loop for key: " + key);
+                return Optional.empty();
+            }
+            visitedKeys.add(targetKey);
+            return internalValue(scope, targetKey, clazz, visitedKeys);
         }
         if (clazz.isInstance(value)) {
-            return clazz.cast(value);
+            return Optional.of (clazz.cast(value));
         }
-        return null;
+        return Optional.empty();
     }
 
     public void setValue(String key, Serializable value) {

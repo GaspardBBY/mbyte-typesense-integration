@@ -28,27 +28,27 @@ import java.util.logging.Logger;
  */
 @Converter
 public class ProcessContextConverter implements AttributeConverter<ProcessContext, String> {
-    private static final Logger LOGGER = Logger.getLogger(ProcessContextConverter.class.getName());
-    private static final ObjectMapper mapper = new ObjectMapper();
+        private static final Logger LOGGER = Logger.getLogger(ProcessContextConverter.class.getName());
+        private static final ObjectMapper mapper = new ObjectMapper();
 
-    @Override
-    public String convertToDatabaseColumn(ProcessContext attribute) {
-        try {
-            String value = mapper.writeValueAsString(attribute);
-            LOGGER.log(Level.FINEST, "Converting ProcessContext to Database: " + value);
-            return value;
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
+        @Override
+        public String convertToDatabaseColumn(ProcessContext attribute) {
+            try {
+                String value = mapper.writeValueAsString(attribute);
+                LOGGER.log(Level.FINEST, "Converting ProcessContext to Database: " + value);
+                return value;
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
+            }
         }
-    }
 
-    @Override
-    public ProcessContext convertToEntityAttribute(String dbData) {
-        try {
-            LOGGER.log(Level.FINEST, "Converting Database to ProcessContext: " + dbData);
-            return mapper.readValue(dbData, ProcessContext.class);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
+        @Override
+        public ProcessContext convertToEntityAttribute(String dbData) {
+            try {
+                LOGGER.log(Level.FINEST, "Converting Database to ProcessContext: " + dbData);
+                return mapper.readValue(dbData, ProcessContext.class);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(e);
+            }
         }
-    }
 }

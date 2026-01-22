@@ -41,7 +41,6 @@ services:
     environment:
       - POSTGRES_USER=mbyte
       - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=mbyte
     volumes:
       - mbyte.db.volume:/var/lib/postgresql
       - ./provisioning/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -93,7 +92,6 @@ services:
       - keycloak
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
-      - mbyte.stores.volume:/home/jboss
     networks:
       mbyte:
         ipv4_address: 172.25.0.6
@@ -112,7 +110,7 @@ services:
 
 networks:
   mbyte:
-    name: mbyte.net
+    name: mbyte.fr
     driver: bridge
     ipam:
       driver: default
@@ -121,14 +119,9 @@ networks:
 
 volumes:
   mbyte.db.volume:
+    name: mbyte.fr.db
     driver: local
     driver_opts:
       type: none
       o: bind
       device: /var/mbyte/db
-  mbyte.stores.volume:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /var/mbyte/stores

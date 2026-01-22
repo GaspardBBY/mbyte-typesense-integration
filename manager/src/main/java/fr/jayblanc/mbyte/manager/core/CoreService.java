@@ -16,19 +16,33 @@
  */
 package fr.jayblanc.mbyte.manager.core;
 
-import fr.jayblanc.mbyte.manager.core.entity.Store;
-import fr.jayblanc.mbyte.manager.exception.AccessDeniedException;
+import fr.jayblanc.mbyte.manager.core.entity.Application;
+import fr.jayblanc.mbyte.manager.core.entity.Environment;
+import fr.jayblanc.mbyte.manager.core.entity.EnvironmentEntry;
+import fr.jayblanc.mbyte.manager.process.ProcessAlreadyRunningException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface CoreService {
 
-    String createStore(String name) throws CoreServiceException;
+    String createApp(String type, String name) throws ApplicationDescriptorNotFoundException;
 
-    List<String> listConnectedUserStores();
+    List<Application> listConnectedUserApps();
 
-    Store getStore(String id) throws StoreNotFoundException, AccessDeniedException, CoreServiceException;
+    List<Application> listApps(String owner) throws AccessDeniedException;
 
-    // void dropStore(String id) throws StoreNotFoundException, CoreServiceException;
+    Application getApp(String id) throws ApplicationNotFoundException, AccessDeniedException;
+
+    Environment getAppEnv(String id) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException;
+
+    Environment updateAppEnv(String id, Set<EnvironmentEntry> entries) throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException;
+
+    String runAppCommand(String id, String name, Map<String, String> params)
+            throws ApplicationNotFoundException, AccessDeniedException, EnvironmentNotFoundException, ApplicationCommandNotFoundException,
+            ProcessAlreadyRunningException;
+
+    void dropApp(String id) throws ApplicationNotFoundException, CoreServiceException;
 
 }

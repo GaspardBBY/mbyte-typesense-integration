@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from 'react-oidc-context'
 import { useProfile } from '../../auth/useProfile'
+import SparkMD5 from 'spark-md5'
 
 function truncateEmail(email: string, max: number): string {
   if (email.length <= max) return email
@@ -24,10 +25,11 @@ export function SidebarProfile({ compact }: SidebarProfileProps) {
   const email = profile?.email ?? auth.user?.profile?.email ?? ''
 
   const gravatarUrl = useMemo(() => {
-    const hash = profile?.gravatarHash
-    if (!hash) return null
-    return `https://www.gravatar.com/avatar/${hash}?s=120&d=identicon`
-  }, [profile?.gravatarHash])
+    const hashFromProfile = profile?.gravatarHash
+    const source = hashFromProfile ?? (email ? SparkMD5.hash(email.trim().toLowerCase()) : null)
+    if (!source) return null
+    return `https://www.gravatar.com/avatar/${source}?s=120&d=identicon`
+  }, [profile?.gravatarHash, email])
 
   const truncatedEmail = useMemo(() => (email ? truncateEmail(email, 50) : ''), [email])
 
@@ -83,4 +85,3 @@ export function SidebarProfile({ compact }: SidebarProfileProps) {
     </div>
   )
 }
-

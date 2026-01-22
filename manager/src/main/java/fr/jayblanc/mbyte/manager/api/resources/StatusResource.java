@@ -18,11 +18,6 @@ package fr.jayblanc.mbyte.manager.api.resources;
 
 import fr.jayblanc.mbyte.manager.auth.AuthenticationService;
 import fr.jayblanc.mbyte.manager.core.CoreService;
-import fr.jayblanc.mbyte.manager.core.CoreServiceException;
-import fr.jayblanc.mbyte.manager.core.StoreNotFoundException;
-import fr.jayblanc.mbyte.manager.runtime.Runtime;
-import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderException;
-import fr.jayblanc.mbyte.manager.runtime.RuntimeProviderNotFoundException;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -34,7 +29,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 @Path("status")
 public class StatusResource {
@@ -46,12 +40,12 @@ public class StatusResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getStatus() throws CoreServiceException {
+    public Response getStatus() {
         LOGGER.log(Level.INFO, "GET /api/status");
         Map<String, Object> status = new HashMap<>();
         status.put("status", "ok");
         status.put("connected-profile", auth.getConnectedProfile().toString());
-        status.put("stores", core.listConnectedUserStores());
+        status.put("apps", core.listConnectedUserApps());
         return Response.ok(status).build();
     }
 

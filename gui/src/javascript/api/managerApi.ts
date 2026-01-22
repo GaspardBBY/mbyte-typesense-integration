@@ -1,13 +1,26 @@
-import { fetchWithAuth, type TokenProvider } from './fetchWithAuth'
-import { apiConfig } from './apiConfig'
-import type { Profile } from './entities/Profile'
-import type { Store } from './entities/Store'
-import type { Process } from './entities/Process'
-import type { ManagerStatus } from './entities/ManagerStatus'
+///
+/// Copyright (C) 2025 Jerome Blanchard <jayblanc@gmail.com>
+///
+/// This program is free software: you can redistribute it and/or modify
+/// it under the terms of the GNU General Public License as published by
+/// the Free Software Foundation, either version 3 of the License, or
+/// (at your option) any later version.
+///
+/// This program is distributed in the hope that it will be useful,
+/// but WITHOUT ANY WARRANTY; without even the implied warranty of
+/// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+/// GNU General Public License for more details.
+///
+/// You should have received a copy of the GNU General Public License
+/// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+///
 
-type CreateStoreResponse = {
-  storeId: string
-}
+import {fetchWithAuth, type TokenProvider} from './fetchWithAuth'
+import {apiConfig} from './apiConfig'
+import type {Profile} from './entities/Profile'
+import type {Process} from './entities/Process'
+import type {ManagerStatus} from './entities/ManagerStatus'
+import type {Application} from './entities/Application'
 
 async function readJsonOrThrow(res: Response): Promise<unknown> {
   const text = await res.text()
@@ -31,12 +44,6 @@ export function createManagerApi(tokenProvider: TokenProvider) {
     return baseUrl
   }
 
-  const listProfileStores = async (profileId: string): Promise<string[]> => {
-    const base = requireBaseUrl()
-    const res = await fetchWithAuth(tokenProvider, `/api/profiles/${profileId}/stores`, { method: 'GET' }, base)
-    return (await readJsonOrThrow(res)) as string[]
-  }
-
   return {
     async getHealth(): Promise<unknown> {
       const base = requireBaseUrl()
@@ -46,50 +53,37 @@ export function createManagerApi(tokenProvider: TokenProvider) {
 
     /**
      * Returns the current user's Profile.
-     * The backend endpoint (/api/profiles) may reply with a redirect to /api/profiles/{id}.
+     * The backend endpoint (/api/profiles/me) may reply with a redirect to /api/profiles/{id}.
      * Fetch follows redirects by default, so a single call is enough.
      */
     async getCurrentProfile(): Promise<Profile> {
       const base = requireBaseUrl()
-      const res = await fetchWithAuth(tokenProvider, '/api/profiles', { method: 'GET' }, base)
+      const res = await fetchWithAuth(tokenProvider, '/api/profiles/me', { method: 'GET' }, base)
       return (await readJsonOrThrow(res)) as Profile
     },
 
-    /** Returns store ids for the given profile (GET /api/profiles/{id}/stores). */
-    async listProfileStores(profileId: string): Promise<string[]> {
-      return listProfileStores(profileId)
-    },
-
-    /** Returns a store by id (GET /api/profiles/{id}/stores/{sid}). */
-    async getProfileStore(profileId: string, storeId: string): Promise<Store> {
+    /** Lists applications (GET /api/apps?owner=...). */
+    async listApps(owner?: string): Promise<Application[]> {
       const base = requireBaseUrl()
-      const res = await fetchWithAuth(tokenProvider, `/api/profiles/${profileId}/stores/${storeId}`, { method: 'GET' }, base)
-      return (await readJsonOrThrow(res)) as Store
-    },
-
-    /** Returns processes for a store (GET /api/profiles/{id}/stores/{sid}/processes?active=true|false). */
-    async getProfileStoreProcesses(profileId: string, storeId: string, active = true): Promise<Process[]> {
-      const base = requireBaseUrl()
-      const url = `/api/profiles/${profileId}/stores/${storeId}/processes?active=${active ? 'true' : 'false'}`
+      const url = owner ? `/api/apps?owner=${encodeURIComponent(owner)}` : '/api/apps'
       const res = await fetchWithAuth(tokenProvider, url, { method: 'GET' }, base)
-      return (await readJsonOrThrow(res)) as Process[]
+      return (await readJsonOrThrow(res)) as Application[]
     },
 
-    async getStatus(): Promise<ManagerStatus> {
+    /** Returns an application by id (GET /api/apps/{id}). */
+    async getApp(appId: string): Promise<Application> {
       const base = requireBaseUrl()
-      const res = await fetchWithAuth(tokenProvider, '/api/status', { method: 'GET' }, base)
-      return (await readJsonOrThrow(res)) as ManagerStatus
+      const res = await fetchWithAuth(tokenProvider, `/api/apps/${encodeURIComponent(appId)}`, { method: 'GET' }, base)
+      return (await readJsonOrThrow(res)) as Application
     },
 
-    /** Creates a store for the given profile (POST /api/profiles/{id}/stores). */
-    async createProfileStore(profileId: string, name: string): Promise<string> {
+    /** Creates an application (POST /api/apps). Returns created id. */
+    async createApp(type: string, name: string): Promise<string> {
       const base = requireBaseUrl()
-
-      const body = new URLSearchParams({ name })
-
+      const body = new URLSearchParams({ type, name })
       const res = await fetchWithAuth(
         tokenProvider,
-        `/api/profiles/${profileId}/stores`,
+        '/api/apps',
         {
           method: 'POST',
           headers: {
@@ -99,12 +93,65 @@ export function createManagerApi(tokenProvider: TokenProvider) {
         },
         base,
       )
-
-      const json = (await readJsonOrThrow(res)) as CreateStoreResponse
-      if (!json?.storeId) {
-        throw new Error('Invalid createProfileStore response: missing storeId')
+      const json = (await readJsonOrThrow(res)) as { id?: string }
+      if (!json?.id) {
+        throw new Error('Invalid createApp response: missing id')
       }
-      return json.storeId
+      return json.id
+    },
+
+    /** Returns processes for an app (GET /api/apps/{appId}/procs?active=true|false). */
+    async getAppProcs(appId: string, active = true): Promise<Process[]> {
+        const base = requireBaseUrl()
+        const url = active ? `/api/apps/${encodeURIComponent(appId)}/procs?active=true` : `/api/apps/${encodeURIComponent(appId)}/procs`
+        const res = await fetchWithAuth(tokenProvider, url, { method: 'GET' }, base)
+        return (await readJsonOrThrow(res)) as Process[]
+    },
+
+    /** Returns available command names for an app (GET /api/apps/{appId}/procs-names). */
+    async listAppCommands(appId: string): Promise<string[]> {
+      const base = requireBaseUrl()
+      const res = await fetchWithAuth(tokenProvider, `/api/apps/${encodeURIComponent(appId)}/procs-names`, { method: 'GET' }, base)
+      return (await readJsonOrThrow(res)) as string[]
+    },
+
+    /** Runs a command on an app (POST /api/apps/{appId}/procs). Returns process id. */
+    async runAppCommand(appId: string, commandName: string): Promise<string> {
+      const base = requireBaseUrl()
+      const body = new URLSearchParams({ name: commandName })
+      const res = await fetchWithAuth(
+        tokenProvider,
+        `/api/apps/${encodeURIComponent(appId)}/procs`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body,
+        },
+        base,
+      )
+      const result = await readJsonOrThrow(res)
+      if (typeof result === 'string') {
+        return result
+      } else if (typeof result === 'object' && result && 'id' in result) {
+        return (result as { id: string }).id
+      } else {
+        throw new Error('Invalid runAppCommand response: missing id')
+      }
+    },
+
+    /** Returns a specific process for an app (GET /api/apps/{appId}/procs/{procId}). */
+    async getAppProc(appId: string, procId: string): Promise<Process> {
+      const base = requireBaseUrl()
+      const res = await fetchWithAuth(tokenProvider, `/api/apps/${encodeURIComponent(appId)}/procs/${encodeURIComponent(procId)}`, { method: 'GET' }, base)
+      return (await readJsonOrThrow(res)) as Process
+    },
+
+    async getStatus(): Promise<ManagerStatus> {
+      const base = requireBaseUrl()
+      const res = await fetchWithAuth(tokenProvider, '/api/status', { method: 'GET' }, base)
+      return (await readJsonOrThrow(res)) as ManagerStatus
     },
   }
 }

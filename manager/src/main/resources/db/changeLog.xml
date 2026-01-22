@@ -9,7 +9,7 @@
 
     <changeSet id="1" author="jerome">
         <createTable tableName="profile">
-            <column name="id" type="varchar">
+            <column name="id" type="varchar(50)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="version" type="bigint"/>
@@ -20,47 +20,64 @@
         <addUniqueConstraint columnNames="username"
                              constraintName="const_username"
                              tableName="profile"/>
-        <createTable tableName="store">
-            <column name="id" type="varchar">
+
+        <createTable tableName="app">
+            <column name="id" type="varchar(50)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="type" type="varchar"/>
             <column name="owner" type="varchar"/>
             <column name="name" type="varchar"/>
             <column name="creationdate" type="bigint"/>
-            <column name="usage" type="float"/>
             <column name="status" type="varchar"/>
-            <column name="log" type="clob"/>
+            <column name="type" type="varchar"/>
         </createTable>
-    </changeSet>
 
-    <changeSet id="2" author="jerome">
-        <createTable tableName="workflowinstance">
-            <column name="id" type="varchar">
+        <createTable tableName="env">
+            <column name="id" type="varchar(50)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="app" type="varchar(50)"/>
+        </createTable>
+
+        <createTable tableName="env_entries">
+            <column name="env_id" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="env_key" type="varchar">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload" type="clob"/>
+            <column name="payloadtype" type="varchar"/>
+            <column name="env_secret" type="boolean"/>
+        </createTable>
+        <addPrimaryKey tableName="env_entries"
+                       columnNames="env_id,env_key"
+                       constraintName="pk_env_entries"/>
+
+        <addForeignKeyConstraint baseTableName="env_entries"
+                                 baseColumnNames="env_id"
+                                 referencedTableName="env"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_env_entries"
+                                 onDelete="CASCADE"/>
+
+        <createTable tableName="proc">
+            <column name="id" type="varchar(50)">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="owner" type="varchar"/>
+            <column name="appid" type="varchar(50)"/>
             <column name="name" type="varchar"/>
+            <column name="tasks" type="varchar(5000)"/>
+            <column name="context" type="clob"/>
+            <column name="log" type="clob"/>
+            <column name="status" type="varchar"/>
+            <column name="nexttaskid" type="varchar"/>
+            <column name="runningtaskjobid" type="varchar"/>
             <column name="creationdate" type="bigint"/>
             <column name="startdate" type="bigint"/>
             <column name="enddate" type="bigint"/>
-            <column name="tasks" type="clob"/>
-            <column name="context" type="text"/>
-            <column name="nexttaskid" type="int"/>
-            <column name="runningtaskjobid" type="varchar"/>
-            <column name="status" type="varchar"/>
         </createTable>
-    </changeSet>
-
-    <changeSet id="3" author="jerome">
-        <renameTable oldTableName="workflowinstance" newTableName="processinstance"/>
-        <addColumn tableName="processinstance">
-            <column name="store" type="varchar"/>
-        </addColumn>
-    </changeSet>
-
-    <changeSet id="4" author="jerome">
-        <dropColumn tableName="store" columnName="log"/>
     </changeSet>
 
 </databaseChangeLog>

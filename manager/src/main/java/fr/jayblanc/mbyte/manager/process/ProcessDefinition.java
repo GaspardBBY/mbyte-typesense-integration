@@ -16,35 +16,38 @@
  */
 package fr.jayblanc.mbyte.manager.process;
 
+import fr.jayblanc.mbyte.manager.core.entity.Environment;
+import fr.jayblanc.mbyte.manager.core.entity.EnvironmentEntry;
 import fr.jayblanc.mbyte.manager.process.entity.ProcessContext;
 
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Jerome Blanchard
  */
 public class ProcessDefinition {
 
-    private final String store;
     private final String name;
+    private final String appId;
     private final List<String> tasks;
     private final ProcessContext context;
 
-    public ProcessDefinition(String store, String name, List<String> tasks, ProcessContext context) {
-        this.store = store;
+    public ProcessDefinition(String name, String appId, List<String> tasks, ProcessContext context) {
         this.name = name;
+        this.appId = appId;
         this.tasks = tasks;
         this.context = context;
     }
 
-    public String getStore() {
-        return store;
-    }
-
     public String getName() {
         return name;
+    }
+
+    public String getAppId() {
+        return appId;
     }
 
     public List<String> getTasks() {
@@ -55,50 +58,56 @@ public class ProcessDefinition {
         return context;
     }
 
-    public boolean isParallelRunAllowed() {
-        return Boolean.FALSE;
-    }
-
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
-        private String store = "";
-        private String name = "default-unnamed-job";
+        private String name = "unnamed-process";
+        private String appId = "";
         private final List<String> tasks = new ArrayList<>();
         private final ProcessContext context = new ProcessContext();
-
-        public Builder forStore(String store) {
-            this.store = store;
-            return this;
-        }
 
         public Builder withName(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder addTask(String task) {
-            this.tasks.add(task);
+        public Builder withAppId(String appId) {
+            this.appId = appId;
             return this;
         }
 
-        public Builder setTaskContextEntry(String key, Serializable value) {
-            if (tasks.isEmpty()) {
-                throw new IllegalStateException("Cannot add task context entry when no task has been added yet");
+        public Builder withEnvironment(Environment env) {
+            for (EnvironmentEntry entry : env.listEntries()) {
+                // TODO Include a 'secret' scope to avoid logging secret values
+                 this.context.setValue(entry.getKey(), entry.getValue());
             }
-            this.context.setValue(ProcessContext.TASK_SCOPE_PREFIX.concat(Integer.toString(tasks.size())), key, value);
             return this;
         }
 
-        public Builder setGlobalContextEntry(String key, Serializable value) {
-            this.context.setValue(key, value);
+        public Builder withGlobalContext(Map<String, Serializable> ctx) {
+            for (Map.Entry<String, Serializable> entry : ctx.entrySet()) {
+                this.context.setValue(entry.getKey(), entry.getValue());
+            }
             return this;
+        }
+
+        public Builder addTask(String task, Map<String, Serializable> taskContext) {
+            String taskName = String.valueOf(tasks.size() + 1).concat(".").concat(task);
+            this.tasks.add(taskName);
+            for (Map.Entry<String, Serializable> entry : taskContext.entrySet()) {
+                this.context.setValue(taskName, entry.getKey(), entry.getValue());
+            }
+            return this;
+        }
+
+        public Builder addTask(String task) {
+            return addTask(task, Map.of());
         }
 
         public ProcessDefinition build() {
-            return new ProcessDefinition(store, name, tasks, context);
+            return new ProcessDefinition(name, appId, tasks, context);
         }
     }
 

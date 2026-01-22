@@ -41,14 +41,14 @@ public class TaskEventListener {
     @Inject ProcessEngineAdmin engine;
 
     public void onTaskScheduled(@Observes(during = TransactionPhase.AFTER_SUCCESS) TaskEvent event) {
-        LOGGER.log(Level.INFO, "Received event on transaction commit, enqueueing job for task: " + event.getTaskRequest().getTaskType());
+        LOGGER.log(Level.INFO, "Received event on transaction commit, enqueueing job for task: " + event.getTaskRequest().getTaskId());
         try {
             JobId jobId = jobScheduler.enqueue(event.getTaskRequest());
             engine.assignTask(event.getTaskRequest().getProcessId(), event.getTaskRequest().getTaskId(), jobId.toString());
             LOGGER.log(Level.INFO, "Job enqueued with ID: " + jobId + " for task: " + event.getTaskRequest().getTaskType());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Failed to enqueue job for task: " + event.getTaskRequest().getTaskType(), e);
-            engine.failTask(event.getTaskRequest().getProcessId(), event.getTaskRequest().getTaskId(), event.getTaskRequest().getContext(), new TaskException("Failed to enqueue job", e));
+            engine.failTask(event.getTaskRequest().getProcessId(), event.getTaskRequest().getTaskId(), "", new TaskException("Failed to enqueue job", e), event.getTaskRequest().getContext());
         }
     }
 }

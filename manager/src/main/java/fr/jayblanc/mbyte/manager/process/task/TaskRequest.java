@@ -27,17 +27,17 @@ public class TaskRequest implements JobRequest {
     private String processId;
     private String processName;
     private String taskType;
-    private int taskId;
+    private String taskId;
     private ProcessContext context;
 
     public TaskRequest() {
     }
 
-    public TaskRequest(String processId, String processName, String taskType, int taskId, ProcessContext context) {
+    public TaskRequest(String processId, String processName, String taskId, ProcessContext context) {
         this.processId = processId;
         this.processName = processName;
-        this.taskType = taskType;
         this.taskId = taskId;
+        this.taskType = taskId.substring(taskId.indexOf('.') + 1);
         this.context = context;
     }
 
@@ -65,11 +65,11 @@ public class TaskRequest implements JobRequest {
         this.taskType = taskType;
     }
 
-    public int getTaskId() {
+    public String getTaskId() {
         return taskId;
     }
 
-    public void setTaskId(int taskId) {
+    public void setTaskId(String taskId) {
         this.taskId = taskId;
     }
 
