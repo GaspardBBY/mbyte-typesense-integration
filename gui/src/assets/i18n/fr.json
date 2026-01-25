@@ -63,5 +63,29 @@
   "i18n": {
     "switchToFrench": "Basculer la langue en français",
     "switchToEnglish": "Basculer la langue en anglais"
+  },
+  "store": {
+    "name": "Nom",
+    "size": "Taille",
+    "type": "Type",
+    "creation": "Création",
+    "modification": "Modification",
+    "actions": "Actions",
+    "open": "Ouvrir",
+    "download": "Télécharger",
+    "info": "Info",
+    "folder": "Dossier",
+    "file": "Fichier",
+    "createFolder": "Créer dossier",
+    "upload": "Téléverser",
+    "enterFolderName": "Entrez le nom du dossier",
+    "createModal": {
+      "titleFolder": "Créer un dossier",
+      "titleFile": "Téléverser un fichier",
+      "nameLabel": "Nom",
+      "fileLabel": "Fichier",
+      "confirm": "Confirmer",
+      "cancel": "Annuler"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { CButton } from '@coreui/react'
 import { CIcon } from '@coreui/icons-react'
-import { cilGrid, cilList, cilHome, cilInfo } from '@coreui/icons'
+import { cilGrid, cilList, cilHome, cilInfo, cilFolder, cilCloudUpload } from '@coreui/icons'
+import { useTranslation } from 'react-i18next'
 
 type BreadcrumbItemInline = { id?: string, name: string }
 
@@ -13,9 +14,13 @@ type NavigationBarProps = Readonly<{
   setCurrentPath: (p: BreadcrumbItemInline[]) => void
   // optional callback for navigation (parent can update the URL)
   onNavigate?: (folderId?: string) => void
+  onCreateFolder?: () => void
+  onUploadFile?: () => void
 }>
 
-export function NavigationBar({ breadcrumb, viewMode, setViewMode, detailVisible, toggleDetail, setCurrentPath, onNavigate }: NavigationBarProps) {
+export function NavigationBar({ breadcrumb, viewMode, setViewMode, detailVisible, toggleDetail, setCurrentPath, onNavigate, onCreateFolder, onUploadFile }: NavigationBarProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="d-flex align-items-center justify-content-between border-bottom px-3" style={{ height: 56 }}>
       <div className="d-flex align-items-center gap-2">
@@ -56,6 +61,13 @@ export function NavigationBar({ breadcrumb, viewMode, setViewMode, detailVisible
       </div>
 
       <div className="d-flex align-items-center gap-2">
+        <CButton color="light" size="sm" onClick={onCreateFolder} title={t('store.createFolder')}>
+          <CIcon icon={cilFolder} />
+        </CButton>
+        <CButton color="light" size="sm" onClick={onUploadFile} title={t('store.upload')}>
+          <CIcon icon={cilCloudUpload} />
+        </CButton>
+        <div className="vr mx-2"></div>
         <CButton color={viewMode === 'grid' ? 'primary' : 'light'} size="sm" onClick={() => setViewMode('grid')}>
           <CIcon icon={cilGrid} />
         </CButton>

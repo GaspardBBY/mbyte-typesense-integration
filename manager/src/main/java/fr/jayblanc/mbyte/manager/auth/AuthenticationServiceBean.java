@@ -74,7 +74,7 @@ public class AuthenticationServiceBean implements AuthenticationService {
             profile = newprofile;
         } else if (userInfo != null && !profile.getEmail().equals(userInfo.getEmail())) {
             profile.setUsername(userInfo.getPreferredUserName());
-            profile.setFullname(userInfo.getName() + " " + userInfo.getFamilyName());
+            profile.setFullname(userInfo.getName());
             profile.setEmail(userInfo.getEmail());
             LOGGER.log(Level.FINE, "Profile email updated for identifier: {0}", connectedId);
         }

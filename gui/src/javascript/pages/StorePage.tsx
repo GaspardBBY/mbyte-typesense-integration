@@ -3,6 +3,7 @@ import { CContainer } from '@coreui/react'
 import { NavigationBar } from '../components/store/NavigationBar'
 import { BrowserArea } from '../components/store/BrowserArea'
 import { InfoPanel } from '../components/store/InfoPanel'
+import { CreateModal } from '../components/store/CreateModal'
 import Node from '../api/entities/Node'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAccessToken } from '../auth/useAccessToken'
@@ -19,6 +20,9 @@ export function StorePage() {
   const [nodes, setNodes] = useState<Node[]>([])
   const [selected, setSelected] = useState<Node | null>(null)
   const [loading, setLoading] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [modalType, setModalType] = useState<'folder' | 'file'>('folder')
 
   const params = useParams()
   const navigate = useNavigate()
@@ -32,16 +36,6 @@ export function StorePage() {
 
   const storeApi = useStoreApi(tokenProvider, storeBaseUrl)
 
-  const notifiedRef = useRef(false)
-
-  // If the store API is not configured, show an informational message and avoid any API calls.
-  useEffect(() => {
-    if (!storeApi.isConfigured && !notifiedRef.current) {
-      notifiedRef.current = true
-      globalThis.dispatchEvent(new CustomEvent('mbyte-toast', { detail: { message: 'Store API not configured for this environment. Set VITE_API_STORE_BASE_URL or provide storeLocator.' } }))
-    }
-  }, [storeApi.isConfigured])
-
   // Keep a ref to the current storeApi and a lastRun key to avoid repeating the same work
   const storeApiRef = useRef(storeApi)
   useEffect(() => { storeApiRef.current = storeApi }, [storeApi])
@@ -53,33 +47,33 @@ export function StorePage() {
     if (!base) return
     if (!storeApiRef.current.isConfigured) return
     const raw = params['*'] || undefined
-    const key = `${base}|${raw ?? ''}`
+    const key = `${base}|${raw ?? ''}|${reloadKey}`
     if (lastRunRef.current === key) return
     lastRunRef.current = key
 
     let cancelled = false
+
+    const loadRoot = async (setBreadcrumb: boolean) => {
+      const root = await storeApiRef.current.getRoot()
+      const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
+      if (cancelled) return
+      if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+        setNodes(coll.values)
+      }
+      if (setBreadcrumb) {
+        const newPath = [{ id: undefined, name: '/' }]
+        if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
+      } else if (!cancelled && currentPath.length !== 0) {
+          setCurrentPath([])
+      }
+      if (!cancelled && selected !== null) setSelected(null)
+    }
+
     const run = async () => {
       setLoading(true)
       try {
         if (!raw) {
-          const root = await storeApiRef.current.getRoot()
-          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
-          if (cancelled) return
-          // avoid setting identical nodes to prevent re-renders
-          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
-            setNodes(coll.values)
-          }
-          try {
-            const path = await storeApiRef.current.getPath(root.id)
-            if (cancelled) return
-            const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
-            if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
-          } catch (e) {
-            // eslint-disable-next-line no-console
-            console.debug('Failed to fetch path for root, hiding breadcrumb', e)
-            if (!cancelled && currentPath.length !== 0) setCurrentPath([])
-          }
-          if (!cancelled && selected !== null) setSelected(null)
+          await loadRoot(true)
           return
         }
 
@@ -94,7 +88,7 @@ export function StorePage() {
             try {
               const path = await storeApiRef.current.getPath(node.id)
               if (cancelled) return
-              const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
+              const newPath = [{ id: undefined, name: '/' }, ...path.slice(1).map(p => ({ id: p.id, name: p.name }))]
               if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
             } catch (e) {
               // eslint-disable-next-line no-console
@@ -106,49 +100,34 @@ export function StorePage() {
           }
 
           if (node.isFile) {
-            const root = await storeApiRef.current.getRoot()
-            const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
-            if (cancelled) return
-            if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
-              setNodes(coll.values)
-            }
             try {
               const path = await storeApiRef.current.getPath(node.id)
               if (cancelled) return
-              const newPath = [{ id: undefined, name: '/' }, ...path.map(p => ({ id: p.id, name: p.name }))]
+              const parentPath = path.slice(0, -1)
+              const parentId = parentPath.length > 0 ? parentPath.at(-1)!.id : (await storeApiRef.current.getRoot()).id
+              const coll = await storeApiRef.current.listChildren(parentId, 200, 0)
+              if (cancelled) return
+              if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
+                setNodes(coll.values)
+              }
+              const newPath = [{ id: undefined, name: '/' }, ...parentPath.slice(1).map(p => ({ id: p.id, name: p.name }))]
               if (JSON.stringify(newPath) !== JSON.stringify(currentPath)) setCurrentPath(newPath)
             } catch (e) {
               // eslint-disable-next-line no-console
-              console.debug('Failed to fetch path for file, hiding breadcrumb', e)
-              if (!cancelled && currentPath.length !== 0) setCurrentPath([])
+              console.debug('Failed to fetch path for file, fallback to root', e)
+              await loadRoot(false)
             }
             if (!cancelled && (selected?.id ?? null) !== node.id) setSelected(node)
             return
           }
 
           // fallback: load root
-          const root = await storeApiRef.current.getRoot()
-          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
-          if (cancelled) return
-          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
-            setNodes(coll.values)
-          }
-          if (!cancelled && currentPath.length !== 0) setCurrentPath([])
-          if (!cancelled && selected !== null) setSelected(null)
-          return
+          await loadRoot(false)
         } catch (e) {
           // can't resolve id: fallback to root
           // eslint-disable-next-line no-console
           console.debug('Failed to resolve node from URL, fallback to root', e)
-          const root = await storeApiRef.current.getRoot()
-          const coll = await storeApiRef.current.listChildren(root.id, 200, 0)
-          if (cancelled) return
-          if (JSON.stringify(coll.values.map(n => n.id)) !== JSON.stringify(nodes.map(n => n.id))) {
-            setNodes(coll.values)
-          }
-          if (!cancelled && currentPath.length !== 0) setCurrentPath([])
-          if (!cancelled && selected !== null) setSelected(null)
-          return
+          await loadRoot(false)
         }
       } catch (err) {
         // Errors are reported by useStoreApi via toaster; fallback to empty state
@@ -165,12 +144,11 @@ export function StorePage() {
 
     void run()
     return () => { cancelled = true }
-  }, [params, storeBaseUrl])
+  }, [params, storeBaseUrl, reloadKey])
 
   const handleOpenFolder = (folderId?: string) => {
-    if (!folderId) return
-    // update URL to point to this folder id
-    navigate(`/s/0/${folderId}`)
+    // update URL to point to this folder id or root
+    navigate(`/s/0${folderId ? `/${folderId}` : ''}`)
   }
 
   const handleView = async (n?: Node | null) => {
@@ -216,6 +194,31 @@ export function StorePage() {
     }
   }
 
+  const handleCreateFolder = () => {
+    setModalType('folder')
+    setShowCreateModal(true)
+  }
+
+  const handleUploadFile = () => {
+    setModalType('file')
+    setShowCreateModal(true)
+  }
+
+  const handleModalConfirm = async (data: string | File) => {
+    const parentId = params['*'] || (await storeApi.getRoot()).id
+    try {
+      if (modalType === 'folder') {
+        await storeApi.create(parentId, data as string)
+      } else {
+        await storeApi.create(parentId, (data as File).name, data as File)
+      }
+      setReloadKey(k => k + 1)
+      setShowCreateModal(false)
+    } catch (err) {
+      console.error('Create failed', err)
+    }
+  }
+
   if (!storeApi.isConfigured) {
     return (
       <CContainer fluid className="p-0 d-flex align-items-center justify-content-center" style={{ height: '100%' }}>
@@ -237,6 +240,8 @@ export function StorePage() {
         toggleDetail={() => setDetailVisible((v) => !v)}
         setCurrentPath={setCurrentPath}
         onNavigate={(folderId) => handleOpenFolder(folderId)}
+        onCreateFolder={handleCreateFolder}
+        onUploadFile={handleUploadFile}
       />
 
       <div className="d-flex" style={{ height: 'calc(100% - 56px)', overflow: 'hidden' }}>
@@ -252,6 +257,15 @@ export function StorePage() {
 
         {detailVisible && <InfoPanel selected={selected ?? null} />}
       </div>
+
+      {showCreateModal && (
+        <CreateModal
+          visible={showCreateModal}
+          type={modalType}
+          onConfirm={handleModalConfirm}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
     </CContainer>
   )
 }

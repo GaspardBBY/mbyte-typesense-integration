@@ -50,7 +50,7 @@ export default function App() {
               <Route path="/dashboard" element={
                   <DashboardPage onNotify={handleNotify} />}
               />
-              <Route path="/s/:index/" element={
+              <Route path="/s/:index/*" element={
                   <StorePage />
                 }
               />

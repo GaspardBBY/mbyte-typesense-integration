@@ -64,5 +64,29 @@
   "i18n": {
     "switchToFrench": "Switch language to French",
     "switchToEnglish": "Switch language to English"
+  },
+  "store": {
+    "name": "Name",
+    "size": "Size",
+    "type": "Type",
+    "creation": "Creation",
+    "modification": "Modification",
+    "actions": "Actions",
+    "open": "Open",
+    "download": "Download",
+    "info": "Info",
+    "folder": "Folder",
+    "file": "File",
+    "createFolder": "Create Folder",
+    "upload": "Upload",
+    "enterFolderName": "Enter folder name",
+    "createModal": {
+      "titleFolder": "Create Folder",
+      "titleFile": "Upload File",
+      "nameLabel": "Name",
+      "fileLabel": "File",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    }
   }
 }
