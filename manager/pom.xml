@@ -4,11 +4,11 @@
     <parent>
         <groupId>fr.jayblanc.mbyte</groupId>
         <artifactId>parent</artifactId>
-        <version>26-SNAPSHOT</version>
+        <version>26</version>
     </parent>
     <artifactId>manager</artifactId>
     <name>The M[iage].byte project :: Manager</name>
-    <version>26.1-SNAPSHOT</version>
+    <version>26.1</version>
     <packaging>jar</packaging>
 
     <properties>

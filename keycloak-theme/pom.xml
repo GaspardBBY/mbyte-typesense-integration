@@ -3,9 +3,10 @@
     <parent>
         <groupId>fr.jayblanc.mbyte</groupId>
         <artifactId>parent</artifactId>
-        <version>25-SNAPSHOT</version>
+        <version>26</version>
     </parent>
     <artifactId>keycloak-theme</artifactId>
+  <version>26.1</version>
     <name>The M[iage].byte project :: Keycloak Theme</name>
     <packaging>jar</packaging>
     <description>Custom Keycloak theme inspired by CoreUI for the mbyte project</description>

@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.jayblanc.mbyte</groupId>
     <artifactId>parent</artifactId>
-    <version>26-SNAPSHOT</version>
+    <version>26</version>
     <name>The M[iage].byte project :: Parent</name>
     <packaging>pom</packaging>
     <description>A sample project for teaching purposes</description>
@@ -30,7 +30,8 @@
         <connection>scm:git:git://github.com/jayblanc/mbyte.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jayblanc/mbyte.git</developerConnection>
         <url>https://github.com/jayblanc/mbyte</url>
-    </scm>
+        <tag>version-26</tag>
+  </scm>
 
     <modules>
         <module>store</module>
