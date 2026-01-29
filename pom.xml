@@ -26,6 +26,12 @@
         </license>
     </licenses>
 
+    <scm>
+        <connection>scm:git:git://github.com/jayblanc/mbyte.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jayblanc/mbyte.git</developerConnection>
+        <url>https://github.com/jayblanc/mbyte</url>
+    </scm>
+
     <modules>
         <module>store</module>
         <module>manager</module>
