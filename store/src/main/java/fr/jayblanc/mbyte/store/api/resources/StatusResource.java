@@ -43,7 +43,7 @@ public class StatusResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     public Status getStatus() {
         LOGGER.log(Level.INFO, "GET /api/status");
-        return Status.fromRuntime().withConnectedId(auth.getConnectedProfile().getId());
+        return Status.fromRuntime().withMetrics(metrics).withConnectedId(auth.getConnectedProfile().getId());
     }
 
 }
