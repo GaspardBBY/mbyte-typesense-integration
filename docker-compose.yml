@@ -114,6 +114,9 @@ services:
 
   manager:
     image: mbyte/manager:26.2-SNAPSHOT
+    build:
+      context: .
+      dockerfile: manager/src/main/docker/Dockerfile.multistage
     hostname: manager
     container_name: mbyte.manager
     depends_on:
@@ -150,6 +153,9 @@ services:
 
   gui:
     image: mbyte/gui:26.2-SNAPSHOT
+    build:
+      context: gui
+      dockerfile: Dockerfile.multistage
     hostname: www
     container_name: mbyte.gui
     depends_on:
@@ -169,6 +175,14 @@ services:
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.services.gui.loadbalancer.server.port=80"
 
+  store-image:
+    image: mbyte/store:26.2-SNAPSHOT
+    build:
+      context: .
+      dockerfile: store/src/main/docker/Dockerfile.multistage
+    profiles:
+      - tools
+
 networks:
   mbyte.fr:
     name: mbyte.fr
@@ -180,7 +194,7 @@ networks:
 
 volumes:
   mbyte.db.volume:
-    name: mbyte.fr.db
+    name: mbyte.fr.db_v2
     driver: local
     driver_opts:
       type: none
