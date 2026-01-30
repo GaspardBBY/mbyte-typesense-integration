@@ -2,6 +2,8 @@ import { CButton } from '@coreui/react'
 import { CIcon } from '@coreui/icons-react'
 import { cilGrid, cilList, cilHome, cilInfo, cilFolder, cilCloudUpload } from '@coreui/icons'
 import { useTranslation } from 'react-i18next'
+import { AutocompleteSearch } from './AutocompleteSearch'
+import type SearchResult from '../../api/entities/SearchResult'
 
 type BreadcrumbItemInline = { id?: string, name: string }
 
@@ -16,10 +18,25 @@ type NavigationBarProps = Readonly<{
   onNavigate?: (folderId?: string) => void
   onCreateFolder?: () => void
   onUploadFile?: () => void
+  onSearch?: (query: string) => Promise<SearchResult[]>
+  onSearchSelect?: (id: string) => void
 }>
 
-export function NavigationBar({ breadcrumb, viewMode, setViewMode, detailVisible, toggleDetail, setCurrentPath, onNavigate, onCreateFolder, onUploadFile }: NavigationBarProps) {
+export function NavigationBar({
+  breadcrumb,
+  viewMode,
+  setViewMode,
+  detailVisible,
+  toggleDetail,
+  setCurrentPath,
+  onNavigate,
+  onCreateFolder,
+  onUploadFile,
+  onSearch,
+  onSearchSelect,
+}: NavigationBarProps) {
   const { t } = useTranslation()
+  const showSearch = typeof onSearch === 'function' && typeof onSearchSelect === 'function'
 
   return (
     <div className="d-flex align-items-center justify-content-between border-bottom px-3" style={{ height: 56 }}>
@@ -61,6 +78,14 @@ export function NavigationBar({ breadcrumb, viewMode, setViewMode, detailVisible
       </div>
 
       <div className="d-flex align-items-center gap-2">
+        {showSearch && (
+          <AutocompleteSearch
+            search={onSearch!}
+            onSelect={onSearchSelect!}
+            placeholder={t('store.searchPlaceholder')}
+            noResultsLabel={t('store.searchNoResults')}
+          />
+        )}
         <CButton color="light" size="sm" onClick={onCreateFolder} title={t('store.createFolder')}>
           <CIcon icon={cilFolder} />
         </CButton>

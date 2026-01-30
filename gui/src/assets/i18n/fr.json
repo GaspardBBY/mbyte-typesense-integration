@@ -78,6 +78,11 @@
     "file": "Fichier",
     "createFolder": "Créer dossier",
     "upload": "Téléverser",
+    "searchPlaceholder": "Rechercher",
+    "searchClear": "Effacer la recherche",
+    "searchLoading": "Recherche…",
+    "searchNoResults": "Aucun résultat",
+    "searchUnavailable": "Recherche indisponible",
     "enterFolderName": "Entrez le nom du dossier",
     "createModal": {
       "titleFolder": "Créer un dossier",

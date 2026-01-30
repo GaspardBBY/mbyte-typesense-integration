@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { CContainer } from '@coreui/react'
 import { NavigationBar } from '../components/store/NavigationBar'
 import { BrowserArea } from '../components/store/BrowserArea'
@@ -166,6 +166,9 @@ export function StorePage() {
     navigate(`/s/0${folderId ? `/${folderId}` : ''}`)
   }
 
+  const handleSearch = useCallback((query: string) => storeApi.search(query), [storeApi])
+  const handleSearchSelect = useCallback((id: string) => navigate(`/s/0/${id}`), [navigate])
+
   const handleView = async (n?: Node | null) => {
     if (!n) return
     if (n.isFolder) {
@@ -257,6 +260,8 @@ export function StorePage() {
         onNavigate={(folderId) => handleOpenFolder(folderId)}
         onCreateFolder={handleCreateFolder}
         onUploadFile={handleUploadFile}
+        onSearch={handleSearch}
+        onSearchSelect={handleSearchSelect}
       />
 
       <div className="d-flex" style={{ height: 'calc(100% - 56px)', overflow: 'hidden' }}>

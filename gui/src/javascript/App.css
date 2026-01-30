@@ -22,6 +22,58 @@
   padding: 0;
 }
 
+/* --- Search highlights --- */
+.highlighted {
+  background: #fff3cd;
+  color: #664d03;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+/* --- Autocomplete search (Typesense) --- */
+.mbyte-search {
+  width: 260px;
+}
+
+.mbyte-search .aa-Form {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: none;
+}
+
+.mbyte-search .aa-Input {
+  font-size: 0.875rem;
+}
+
+.mbyte-search .aa-Panel {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mbyte-search-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mbyte-search-item__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mbyte-search-item__meta {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.mbyte-search-item__snippet {
+  font-size: 0.75rem;
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: 4px;
+}
+
 /* --- User block (SidebarProfile) --- */
 .mbyte-userblock {
   display: flex;

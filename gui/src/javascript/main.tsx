@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import './i18n'
 
 import '@coreui/coreui/dist/css/coreui.min.css'
+import '@algolia/autocomplete-theme-classic/dist/theme.css'
 import './index.css'
 
 import { BrowserRouter } from 'react-router-dom'

@@ -11,6 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@algolia/autocomplete-js": "^1.19.4",
+    "@algolia/autocomplete-theme-classic": "^1.19.4",
     "@coreui/coreui": "^5.4.3",
     "@coreui/icons": "^3.0.1",
     "@coreui/icons-react": "^2.3.0",

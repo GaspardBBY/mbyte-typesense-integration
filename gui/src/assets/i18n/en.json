@@ -79,6 +79,11 @@
     "file": "File",
     "createFolder": "Create Folder",
     "upload": "Upload",
+    "searchPlaceholder": "Search",
+    "searchClear": "Clear search",
+    "searchLoading": "Searching…",
+    "searchNoResults": "No results",
+    "searchUnavailable": "Search unavailable",
     "enterFolderName": "Enter folder name",
     "createModal": {
       "titleFolder": "Create Folder",
