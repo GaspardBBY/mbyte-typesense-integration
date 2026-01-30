@@ -1,0 +1,36 @@
+#  Build
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /code
+
+# Copy parent pom and license header (required for check)
+COPY pom.xml LICENSE_HEADER.txt /code/
+
+# Copy manager module
+COPY manager /code/manager
+
+WORKDIR /code/manager
+RUN mvn package -DskipTests
+
+FROM registry.access.redhat.com/ubi8/openjdk-21:1.19
+
+ARG HOST_DOCKER_GID=138
+ENV HOST_DOCKER_GID=${HOST_DOCKER_GID}
+
+ENV LANGUAGE='en_US:en'
+
+# Run
+COPY --from=build --chown=185 /code/manager/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /code/manager/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /code/manager/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /code/manager/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER root
+RUN groupadd -g "${HOST_DOCKER_GID}" hostdocker 2>/dev/null || \
+    groupmod -o -g "${HOST_DOCKER_GID}" hostdocker; \
+    usermod -a -G hostdocker jboss;
+USER 185
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

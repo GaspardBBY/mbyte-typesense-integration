@@ -1,0 +1,12 @@
+target/
+.git/
+.idea/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+node_modules/
+.DS_Store
