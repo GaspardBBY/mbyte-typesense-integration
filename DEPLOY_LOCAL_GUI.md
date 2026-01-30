@@ -35,7 +35,7 @@ Depuis la racine du projet (là où se trouve `docker-compose.yml`) :
 # Arrête le service gui sans toucher aux autres services
 docker compose stop gui
 # Pour supprimer le container afin d'éviter tout redémarrage automatique :
-docker compose rm -s -f gui
+docker compose rm -f gui
 ```
 
 2) Lancer la `gui` en local (npm run dev) en utilisant les IP des containers ou localhost
@@ -51,8 +51,8 @@ Si vous avez lancé le manager localement (sur localhost:8080), configurez :
 ```bash
 # Depuis le dossier gui/
 VITE_API_MANAGER_BASE_URL=http://localhost:8080 \
-VITE_OIDC_AUTHORITY=http://172.25.0.5/realms/mbyte \
-VITE_OIDC_CLIENT_ID=mbyte \
+VITE_OIDC_AUTHORITY=https://auth.mbyte.fr/realms/mbyte \
+VITE_OIDC_CLIENT_ID=mbyte-local-gui \
 VITE_OIDC_SCOPE="openid profile email" \
 npm run dev
 ```
@@ -64,8 +64,8 @@ Si le manager est dans Docker (172.25.0.6:8080), configurez :
 ```bash
 # Depuis le dossier gui/
 VITE_API_MANAGER_BASE_URL=http://172.25.0.6:8080 \
-VITE_OIDC_AUTHORITY=http://172.25.0.5/realms/mbyte \
-VITE_OIDC_CLIENT_ID=mbyte \
+VITE_OIDC_AUTHORITY=https://auth.mbyte.fr/realms/mbyte \
+VITE_OIDC_CLIENT_ID=mbyte-local-gui \
 VITE_OIDC_SCOPE="openid profile email" \
 npm run dev
 ```

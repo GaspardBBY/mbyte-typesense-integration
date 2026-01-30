@@ -30,7 +30,7 @@ export type StoreLocator = {
 }
 
 export function computeStoreBaseUrl(locator: StoreLocator): string {
-  const username = locator.username.trim()
+  const username = locator.username.trim();
   if (!username) {
     throw new Error('Cannot compute store base URL: empty username')
   }
@@ -50,11 +50,15 @@ export type CreateStoreApiOptions = {
 }
 
 export function createStoreApi(tokenProvider: TokenProvider, options: CreateStoreApiOptions = {}) {
-  const baseUrl =
+  let baseUrl =
     options.baseUrlOverride ??
     apiConfig.storeBaseUrl ??
     (options.storeLocator ? computeStoreBaseUrl(options.storeLocator) : undefined)
+  if (baseUrl === 'https://polo.s.mbyte.fr/') {
+      baseUrl = 'http://localhost:8082'
+  }
 
+    console.log("[storeApi] using baseUrl:", baseUrl)
   return {
     // expose whether the API has a base URL configured (useful for UI to avoid repeated failing calls)
     isConfigured: Boolean(baseUrl),
