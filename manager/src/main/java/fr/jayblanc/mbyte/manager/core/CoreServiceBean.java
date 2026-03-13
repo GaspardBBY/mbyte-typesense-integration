@@ -59,13 +59,34 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
     @Transactional(Transactional.TxType.REQUIRED)
     public String createApp(String type, String name) throws ApplicationDescriptorNotFoundException, NotificationServiceException {
         LOGGER.log(Level.INFO, "Creating new application of type: {0} with name: {1}", new Object[] {type, name});
+        String owner = authentication.getConnectedIdentifier();
+        if ("DOCKER_STORE".equals(type)) {
+            List<Application> existingApps = em.createNamedQuery("Application.findByOwnerAndType", Application.class)
+                    .setParameter("owner", owner)
+                    .setParameter("type", type)
+                    .getResultList();
+            if (!existingApps.isEmpty()) {
+                Application existing = existingApps.stream()
+                        .sorted((left, right) -> {
+                            int statusCompare = Integer.compare(storeStatusRank(right.getStatus()), storeStatusRank(left.getStatus()));
+                            if (statusCompare != 0) {
+                                return statusCompare;
+                            }
+                            return Long.compare(right.getCreationDate(), left.getCreationDate());
+                        })
+                        .findFirst()
+                        .orElse(existingApps.getFirst());
+                LOGGER.log(Level.INFO, "Reusing existing store application for owner: {0}, app id: {1}", new Object[] {owner, existing.getId()});
+                return existing.getId();
+            }
+        }
         String appid = UUID.randomUUID().toString();
         Application application = new Application();
         application.setId(appid);
         application.setName(name);
         application.setType(type);
         application.setCreationDate(System.currentTimeMillis());
-        application.setOwner(authentication.getConnectedIdentifier());
+        application.setOwner(owner);
         application.setStatus(ApplicationStatus.CREATED);
         em.persist(application);
         Environment initialEnv = appRegistry.findDescriptor(type).getInitialEnv(config.instance(), appid, name, application.getOwner());
@@ -201,6 +222,19 @@ public class CoreServiceBean implements CoreService, CoreServiceAdmin {
 
     private List<Application> findAppsByOwner(String owner) {
         return em.createNamedQuery("Application.findByOwner", Application.class).setParameter("owner", owner).getResultList();
+    }
+
+    private int storeStatusRank(ApplicationStatus status) {
+        if (status == null) {
+            return 0;
+        }
+        return switch (status) {
+            case AVAILABLE -> 5;
+            case STARTED -> 4;
+            case CREATED -> 3;
+            case STOPPED -> 2;
+            case LOST, ERROR -> 1;
+        };
     }
 
     private String locateApp(String id) {

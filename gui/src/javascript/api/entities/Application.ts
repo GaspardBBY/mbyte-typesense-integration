@@ -21,5 +21,5 @@ export type Application = {
   name?: string
   type?: string
   creationDate?: number
-  status?: 'CREATED' | 'STARTING' | 'AVAILABLE' | 'LOST' | 'ERROR'
+  status?: 'CREATED' | 'STARTED' | 'STARTING' | 'AVAILABLE' | 'LOST' | 'ERROR' | 'STOPPED'
 }

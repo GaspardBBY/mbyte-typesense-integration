@@ -10,6 +10,7 @@ import { useAccessToken } from '../auth/useAccessToken'
 import { useStoreApi } from '../api/useStoreApi'
 import { useManagerStatus } from '../auth/useManagerStatus'
 import { apiConfig } from '../api/apiConfig'
+import { selectPreferredStoreApp } from '../utils/storeApp'
 
 type BreadcrumbItem = { id?: string, name: string }
 
@@ -31,7 +32,7 @@ export function StorePage() {
   const { apps } = useManagerStatus()
 
   // compute per-user store base URL from the DOCKER_STORE app name when present
-  const userStoreApp = apps.find((a) => a?.type === 'DOCKER_STORE')
+  const userStoreApp = selectPreferredStoreApp(apps)
   const storeBaseUrl = userStoreApp?.name ? `${apiConfig.storesScheme}://${userStoreApp.name}.${apiConfig.storesDomain}/` : undefined
 
   const storeApi = useStoreApi(tokenProvider, storeBaseUrl)
@@ -223,7 +224,12 @@ export function StorePage() {
   }
 
   const handleModalConfirm = async (data: string | File) => {
-    const parentId = params['*'] || (await storeApi.getRoot()).id
+    const routeId = params['*']
+    const currentFolderId = currentPath.at(-1)?.id
+    const parentId =
+      routeId && routeId === currentFolderId
+        ? routeId
+        : currentFolderId ?? (await storeApi.getRoot()).id
     try {
       if (modalType === 'folder') {
         await storeApi.create(parentId, data as string)

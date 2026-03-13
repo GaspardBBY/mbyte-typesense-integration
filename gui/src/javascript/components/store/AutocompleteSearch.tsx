@@ -34,39 +34,56 @@ type AutocompleteItem = {
   [key: string]: unknown
 }
 
-const HIGHLIGHT_START = "<span class='highlighted'>"
-const HIGHLIGHT_END = '</span>'
+const HIGHLIGHT_SPAN_START = "<span class='highlighted'>"
+const HIGHLIGHT_SPAN_START_DOUBLE_QUOTES = '<span class="highlighted">'
+const HIGHLIGHT_SPAN_END = '</span>'
+const HIGHLIGHT_MARK_START = '<mark>'
+const HIGHLIGHT_MARK_END = '</mark>'
 
-const escapeHtml = (value: string) =>
-  value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
+type HighlightSegment = {
+  text: string
+  highlighted: boolean
+  className?: string
+}
 
-const toSafeHighlightHtml = (value: string) => {
-  if (!value) return ''
-  const normalized = value.replaceAll('<span class=\"highlighted\">', HIGHLIGHT_START)
-  let result = ''
+const toHighlightSegments = (value: string): HighlightSegment[] => {
+  if (!value) return []
+  const normalized = value
+    .replaceAll(HIGHLIGHT_SPAN_START_DOUBLE_QUOTES, HIGHLIGHT_SPAN_START)
+  const result: HighlightSegment[] = []
   let index = 0
   while (index < normalized.length) {
-    const start = normalized.indexOf(HIGHLIGHT_START, index)
+    const spanStart = normalized.indexOf(HIGHLIGHT_SPAN_START, index)
+    const markStart = normalized.indexOf(HIGHLIGHT_MARK_START, index)
+    let start = -1
+    let startToken = ''
+    let endToken = ''
+    let className: string | undefined
+    if (spanStart !== -1 && (markStart === -1 || spanStart < markStart)) {
+      start = spanStart
+      startToken = HIGHLIGHT_SPAN_START
+      endToken = HIGHLIGHT_SPAN_END
+      className = 'highlighted'
+    } else if (markStart !== -1) {
+      start = markStart
+      startToken = HIGHLIGHT_MARK_START
+      endToken = HIGHLIGHT_MARK_END
+    }
     if (start === -1) {
-      result += escapeHtml(normalized.slice(index))
+      result.push({ text: normalized.slice(index), highlighted: false })
       break
     }
     if (start > index) {
-      result += escapeHtml(normalized.slice(index, start))
+      result.push({ text: normalized.slice(index, start), highlighted: false })
     }
-    const end = normalized.indexOf(HIGHLIGHT_END, start + HIGHLIGHT_START.length)
+    const end = normalized.indexOf(endToken, start + startToken.length)
     if (end === -1) {
-      result += escapeHtml(normalized.slice(start))
+      result.push({ text: normalized.slice(start), highlighted: false })
       break
     }
-    const text = normalized.slice(start + HIGHLIGHT_START.length, end)
-    result += `${HIGHLIGHT_START}${escapeHtml(text)}${HIGHLIGHT_END}`
-    index = end + HIGHLIGHT_END.length
+    const text = normalized.slice(start + startToken.length, end)
+    result.push({ text, highlighted: true, className })
+    index = end + endToken.length
   }
   return result
 }
@@ -101,24 +118,32 @@ export function AutocompleteSearch({ search, onSelect, placeholder, noResultsLab
               setQuery('')
               setIsOpen(false)
               onSelect(item.identifier)
-            },
-            templates: {
-              item({ item }) {
-                const title = escapeHtml(item.identifier ?? '')
-                const meta = escapeHtml(item.type ?? '')
-                const explain = item.explain ? toSafeHighlightHtml(item.explain) : ''
-                return `
+              },
+              templates: {
+              item({ item, html }) {
+                const title = item.identifier ?? ''
+                const meta = item.type ?? ''
+                const explainSegments = toHighlightSegments(item.explain ?? '')
+                return html`
                   <div class="mbyte-search-item">
                     <div class="mbyte-search-item__header">
                       <div class="mbyte-search-item__title" title="${title}">${title}</div>
-                      ${meta ? `<div class="mbyte-search-item__meta">${meta}</div>` : ''}
+                      ${meta ? html`<div class="mbyte-search-item__meta">${meta}</div>` : ''}
                     </div>
-                    ${explain ? `<div class="mbyte-search-item__snippet">${explain}</div>` : ''}
+                    ${explainSegments.length
+                      ? html`<div class="mbyte-search-item__snippet">
+                          ${explainSegments.map((segment) =>
+                            segment.highlighted
+                              ? html`<span class="${segment.className ?? ''}">${segment.text}</span>`
+                              : segment.text,
+                          )}
+                        </div>`
+                      : ''}
                   </div>
                 `
               },
-              noResults() {
-                return `<div class="mbyte-search-empty">${escapeHtml(noResultsLabel)}</div>`
+              noResults({ html }) {
+                return html`<div class="mbyte-search-empty">${noResultsLabel}</div>`
               },
             },
           },

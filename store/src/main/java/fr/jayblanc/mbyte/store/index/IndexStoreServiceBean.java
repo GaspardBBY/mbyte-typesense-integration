@@ -16,29 +16,22 @@
  */
 package fr.jayblanc.mbyte.store.index;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.*;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.highlight.Highlighter;
-import org.apache.lucene.search.highlight.QueryScorer;
-import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,49 +44,35 @@ public class IndexStoreServiceBean implements IndexStoreService {
     private static final Logger LOGGER = Logger.getLogger(IndexStoreServiceBean.class.getName());
 
     @Inject IndexStoreConfig config;
+    @Inject ObjectMapper mapper;
 
-    private Analyzer analyzer;
-    private Directory directory;
-    private IndexWriter writer;
+    private HttpClient client;
+    private URI baseUri;
 
     @PostConstruct
     public void init() {
-        LOGGER.log(Level.INFO, "Instantiating service");
-        Path base = Paths.get(config.home());
-        LOGGER.log(Level.INFO, "Initializing service with base folder: " + base);
+        LOGGER.log(Level.INFO, "Initializing Typesense index service");
+        client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
+        baseUri = URI.create(String.format("%s://%s:%d", config.typesense().protocol(), config.typesense().host(), config.typesense().port()));
         try {
-            analyzer = new StandardAnalyzer();
-            directory = FSDirectory.open(base);
-            LOGGER.log(Level.FINEST, "directory implementation: " + directory.getClass());
-            IndexWriterConfig config = new IndexWriterConfig(analyzer);
-            writer = new IndexWriter(directory, config);
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "unable to configure lucene index writer", e);
-        }
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        LOGGER.log(Level.INFO, "Shutting down service");
-        try {
-            writer.close();
-            directory.close();
-        } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "unable to close lucene index writer", e);
+            ensureCollection();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Unable to initialize Typesense collection", e);
+            throw new RuntimeException("Unable to initialize Typesense collection", e);
         }
     }
 
     @Override
     @Transactional(Transactional.TxType.SUPPORTS)
     public void index(IndexableContent object) throws IndexStoreException {
-        LOGGER.log(Level.INFO, "Indexing new object: " + object.getIdentifier());
+        LOGGER.log(Level.INFO, "Indexing object in Typesense: {0}", object.getIdentifier());
         try {
-            Term term = new Term("IDENTIFIER", object.getIdentifier());
-            writer.deleteDocuments(term);
-            writer.addDocument(IndexStoreDocumentBuilder.buildDocument(object));
-            writer.commit();
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "unable to index object " + object, e);
+            String payload = mapper.writeValueAsString(IndexStoreDocumentBuilder.buildDocument(object));
+            HttpRequest request = baseRequest("/collections/" + encode(config.typesense().collection()) + "/documents?action=upsert")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload))
+                    .build();
+            sendExpectSuccess(request, "upsert document " + object.getIdentifier());
+        } catch (Exception e) {
             throw new IndexStoreException("Can't index an object", e);
         }
     }
@@ -101,13 +80,17 @@ public class IndexStoreServiceBean implements IndexStoreService {
     @Override
     @Transactional(Transactional.TxType.SUPPORTS)
     public void remove(String identifier) throws IndexStoreException {
-        LOGGER.log(Level.INFO, "Removing document: " + identifier);
+        LOGGER.log(Level.INFO, "Removing document from Typesense: {0}", identifier);
         try {
-            Term term = new Term("IDENTIFIER", identifier);
-            writer.deleteDocuments(term);
-            writer.commit();
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "unable to remove object " + identifier + " from index", e);
+            HttpRequest request = baseRequest("/collections/" + encode(config.typesense().collection()) + "/documents/" + encode(identifier))
+                    .DELETE()
+                    .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200 && response.statusCode() != 404) {
+                throw new IndexStoreException("Can't remove object " + identifier + " from index, status=" + response.statusCode() + " body=" + response.body());
+            }
+        } catch (IOException | InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new IndexStoreException("Can't remove object " + identifier + " from index", e);
         }
     }
@@ -115,37 +98,111 @@ public class IndexStoreServiceBean implements IndexStoreService {
     @Override
     @Transactional(Transactional.TxType.SUPPORTS)
     public List<IndexStoreResult> search(String scope, String queryString) throws IndexStoreException {
-        LOGGER.log(Level.INFO, "Searching query: " + queryString);
+        LOGGER.log(Level.INFO, "Searching query in Typesense: {0}", queryString);
         try {
-            IndexReader reader = DirectoryReader.open(directory);
-            IndexSearcher searcher = new IndexSearcher(reader);
-            QueryParser parser = new QueryParser(IndexStoreDocumentBuilder.CONTENT_FIELD, analyzer);
-            Query query = parser.parse(queryString);
-
-            TopDocs docs = searcher.search(query, 100);
+            String path = "/collections/" + encode(config.typesense().collection()) + "/documents/search"
+                    + "?q=" + encode(queryString == null || queryString.isBlank() ? "*" : queryString)
+                    + "&query_by=" + encode(String.join(",", IndexStoreDocumentBuilder.CONTENT_FIELD, IndexStoreDocumentBuilder.NAME_FIELD, IndexStoreDocumentBuilder.MIMETYPE_FIELD))
+                    + "&highlight_fields=" + encode(String.join(",", IndexStoreDocumentBuilder.CONTENT_FIELD, IndexStoreDocumentBuilder.NAME_FIELD))
+                    + "&filter_by=" + encode(IndexStoreDocumentBuilder.STORE_ID_FIELD + ":=" + config.typesense().storeId() + " && "
+                    + IndexStoreDocumentBuilder.SCOPE_FIELD + ":=" + scope)
+                    + "&per_page=100";
+            HttpRequest request = baseRequest(path).GET().build();
+            HttpResponse<String> response = sendExpectSuccess(request, "search query " + queryString);
+            JsonNode root = mapper.readTree(response.body());
             List<IndexStoreResult> results = new ArrayList<>();
-            SimpleHTMLFormatter formatter = new SimpleHTMLFormatter("<span class='highlighted'>", "</span>");
-            QueryScorer scorer = new QueryScorer(query);
-            Highlighter highlighter = new Highlighter(formatter, scorer);
-
-            for (int i = 0; i < docs.scoreDocs.length; i++) {
-                Document doc = searcher.doc(docs.scoreDocs[i].doc);
-                float score = docs.scoreDocs[i].score;
-                String identifier = doc.get(IndexStoreDocumentBuilder.IDENTIFIER_FIELD);
-                String type = doc.get(IndexStoreDocumentBuilder.TYPE_FIELD);
-                String highlightedText = highlighter.getBestFragment(analyzer, IndexStoreDocumentBuilder.CONTENT_FIELD, doc.get(IndexStoreDocumentBuilder.CONTENT_FIELD));
+            for (JsonNode hit : root.path("hits")) {
+                JsonNode document = hit.path("document");
                 IndexStoreResult result = new IndexStoreResult();
-                result.setType(type);
-                result.setScore(score);
-                result.setIdentifier(identifier);
-                result.setExplain(highlightedText);
+                result.setIdentifier(document.path(IndexStoreDocumentBuilder.ID_FIELD).asText());
+                result.setType(document.path(IndexStoreDocumentBuilder.TYPE_FIELD).asText());
+                result.setScore((float) hit.path("text_match").asDouble(0));
+                result.setExplain(extractExplain(hit, document));
                 results.add(result);
             }
             return results;
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "unable search in index using " + queryString, e);
-            throw new IndexStoreException("Can't search in index using '" + queryString + "'\n", e);
+            throw new IndexStoreException("Can't search in index using '" + queryString + "'", e);
         }
     }
 
+    private void ensureCollection() throws IOException, InterruptedException, IndexStoreException {
+        String collection = config.typesense().collection();
+        HttpRequest get = baseRequest("/collections/" + encode(collection)).GET().build();
+        HttpResponse<String> existing = client.send(get, HttpResponse.BodyHandlers.ofString());
+        if (existing.statusCode() == 200) {
+            LOGGER.log(Level.INFO, "Typesense collection already exists: {0}", collection);
+            return;
+        }
+        if (existing.statusCode() != 404) {
+            throw new IOException("Unable to inspect Typesense collection, status=" + existing.statusCode() + " body=" + existing.body());
+        }
+        String payload = """
+                {
+                  "name": "%s",
+                  "fields": [
+                    { "name": "id", "type": "string" },
+                    { "name": "store_id", "type": "string", "facet": true },
+                    { "name": "type", "type": "string", "facet": true },
+                    { "name": "scope", "type": "string", "facet": true },
+                    { "name": "name", "type": "string", "optional": true },
+                    { "name": "mimetype", "type": "string", "facet": true, "optional": true },
+                    { "name": "node_type", "type": "string", "facet": true, "optional": true },
+                    { "name": "parent", "type": "string", "optional": true },
+                    { "name": "content", "type": "string" },
+                    { "name": "modified_at", "type": "int64", "sort": true }
+                  ],
+                  "default_sorting_field": "modified_at"
+                }
+                """.formatted(collection);
+        HttpRequest create = baseRequest("/collections")
+                .POST(HttpRequest.BodyPublishers.ofString(payload))
+                .build();
+        sendExpectSuccess(create, "create collection " + collection);
+        LOGGER.log(Level.INFO, "Created Typesense collection: {0}", collection);
+    }
+
+    private String extractExplain(JsonNode hit, JsonNode document) {
+        for (JsonNode highlight : hit.path("highlights")) {
+            JsonNode snippet = highlight.path("snippet");
+            if (!snippet.isMissingNode() && !snippet.asText().isBlank()) {
+                return snippet.asText();
+            }
+            for (JsonNode snippets : highlight.path("snippets")) {
+                if (!snippets.asText().isBlank()) {
+                    return snippets.asText();
+                }
+            }
+        }
+        JsonNode legacyHighlight = hit.path("highlight");
+        if (legacyHighlight.isObject()) {
+            for (String field : List.of(IndexStoreDocumentBuilder.CONTENT_FIELD, IndexStoreDocumentBuilder.NAME_FIELD)) {
+                JsonNode value = legacyHighlight.path(field);
+                if (!value.isMissingNode() && !value.asText().isBlank()) {
+                    return value.asText();
+                }
+            }
+        }
+        String fallback = document.path(IndexStoreDocumentBuilder.CONTENT_FIELD).asText(document.path(IndexStoreDocumentBuilder.NAME_FIELD).asText(""));
+        return fallback.length() > 240 ? fallback.substring(0, 240) : fallback;
+    }
+
+    private HttpRequest.Builder baseRequest(String path) {
+        return HttpRequest.newBuilder(baseUri.resolve(path))
+                .timeout(Duration.ofSeconds(5))
+                .header("Content-Type", "application/json")
+                .header("X-TYPESENSE-API-KEY", config.typesense().apiKey());
+    }
+
+    private HttpResponse<String> sendExpectSuccess(HttpRequest request, String action) throws IOException, InterruptedException, IndexStoreException {
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() / 100 != 2) {
+            throw new IndexStoreException("Unable to " + action + ", status=" + response.statusCode() + " body=" + response.body());
+        }
+        return response;
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
 }

@@ -23,5 +23,26 @@ import io.smallrye.config.ConfigMapping;
  */
 @ConfigMapping(prefix = "store.index")
 public interface IndexStoreConfig {
-    String home();
+    Backend backend();
+
+    Bootstrap bootstrap();
+
+    Typesense typesense();
+
+    enum Backend {
+        TYPESENSE
+    }
+
+    interface Bootstrap {
+        boolean reindex();
+    }
+
+    interface Typesense {
+        String protocol();
+        String host();
+        int port();
+        String apiKey();
+        String collection();
+        String storeId();
+    }
 }

@@ -56,6 +56,20 @@ services:
       mbyte.fr:
         ipv4_address: 172.25.0.4
 
+  typesense:
+    image: typesense/typesense:27.1
+    hostname: typesense
+    container_name: mbyte.typesense
+    command:
+      - "--data-dir=/data"
+      - "--api-key=change-me-typesense-key"
+      - "--enable-cors"
+    volumes:
+      - mbyte.typesense.data:/data
+    networks:
+      mbyte.fr:
+        ipv4_address: 172.25.0.9
+
   keycloak:
     build:
       context: .
@@ -104,8 +118,11 @@ services:
     container_name: mbyte.manager
     depends_on:
       - db
+      - typesense
       - traefik
       - keycloak
+    group_add:
+      - "1001"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     extra_hosts:
@@ -169,3 +186,5 @@ volumes:
       type: none
       o: bind
       device: /var/mbyte/db
+  mbyte.typesense.data:
+    name: mbyte.fr.typesense.data

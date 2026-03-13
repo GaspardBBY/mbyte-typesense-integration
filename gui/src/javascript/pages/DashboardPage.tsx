@@ -5,6 +5,7 @@ import {useManagerStatus} from '../auth/useManagerStatus'
 import {useProfile} from '../auth/useProfile'
 import { useManagerApi } from '../api/ManagerApiProvider'
 import { useState } from 'react'
+import { selectPreferredStoreApp } from '../utils/storeApp'
 
 type DashboardPageProps = {
   onNotify: (message: string) => void
@@ -18,7 +19,7 @@ export function DashboardPage({ onNotify }: DashboardPageProps) {
 
   const [creationBusy, setCreationBusy] = useState(false)
 
-  const storeApp = apps.find(a => a.type === 'DOCKER_STORE')
+  const storeApp = selectPreferredStoreApp(apps)
 
   const handleCreateStore = async () => {
     if (!profile?.id) return

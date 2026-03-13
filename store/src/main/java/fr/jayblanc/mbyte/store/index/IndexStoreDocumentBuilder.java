@@ -16,25 +16,37 @@
  */
 package fr.jayblanc.mbyte.store.index;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class IndexStoreDocumentBuilder {
 
-    public static final String TYPE_FIELD = "TYPE";
-    public static final String IDENTIFIER_FIELD = "IDENTIFIER";
-    public static final String SCOPE_FIELD = "SCOPE";
-    public static final String CONTENT_FIELD = "CONTENT";
+    public static final String ID_FIELD = "id";
+    public static final String TYPE_FIELD = "type";
+    public static final String SCOPE_FIELD = "scope";
+    public static final String CONTENT_FIELD = "content";
+    public static final String NAME_FIELD = "name";
+    public static final String MIMETYPE_FIELD = "mimetype";
+    public static final String NODE_TYPE_FIELD = "node_type";
+    public static final String PARENT_FIELD = "parent";
+    public static final String STORE_ID_FIELD = "store_id";
+    public static final String MODIFIED_AT_FIELD = "modified_at";
 
-    public static Document buildDocument(IndexableContent object) {
-        Document document = new Document();
-        document.add(new Field(TYPE_FIELD, object.getType(), StringField.TYPE_STORED));
-        document.add(new Field(IDENTIFIER_FIELD, object.getIdentifier(), StringField.TYPE_STORED));
-        document.add(new Field(SCOPE_FIELD, object.getScope().name(), StringField.TYPE_STORED));
-        document.add(new Field(CONTENT_FIELD, object.getContent(), TextField.TYPE_STORED));
+    public static Map<String, Object> buildDocument(IndexableContent object) {
+        Map<String, Object> document = new LinkedHashMap<>();
+        document.put(ID_FIELD, object.getIdentifier());
+        document.put(TYPE_FIELD, object.getType());
+        document.put(SCOPE_FIELD, object.getScope().name());
+        document.put(CONTENT_FIELD, object.getContent());
+        document.put(NAME_FIELD, object.getName());
+        document.put(MIMETYPE_FIELD, object.getMimetype());
+        document.put(NODE_TYPE_FIELD, object.getNodeType());
+        document.put(PARENT_FIELD, object.getParent());
+        document.put(STORE_ID_FIELD, object.getStoreId());
+        document.put(MODIFIED_AT_FIELD, object.getModifiedAt());
         return document;
     }
 
+    private IndexStoreDocumentBuilder() {
+    }
 }

@@ -58,10 +58,14 @@ export function DetailStoreCard({ app, onRefresh }: DetailStoreCardProps) {
     switch (status) {
       case 'AVAILABLE':
         return 'success'
+      case 'STARTED':
+        return 'success'
       case 'STARTING':
         return 'warning'
       case 'CREATED':
         return 'info'
+      case 'STOPPED':
+        return 'secondary'
       case 'ERROR':
         return 'danger'
       case 'LOST':

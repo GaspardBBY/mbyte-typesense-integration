@@ -55,6 +55,7 @@ public class FileServiceBean implements FileService, IndexableContentProvider {
     @Inject DataStore datastore;
     @Inject NotificationService notification;
     @Inject AuthenticationService auth;
+    @Inject fr.jayblanc.mbyte.store.index.IndexStoreConfig indexConfig;
     @Inject EntityManager em;
 
     public FileServiceBean() {
@@ -249,9 +250,15 @@ public class FileServiceBean implements FileService, IndexableContentProvider {
         content.setIdentifier(id);
         content.setType("node");
         content.setScope(IndexableContent.Scope.PRIVATE);
+        content.setStoreId(indexConfig.typesense().storeId());
         content.setContent("");
         try {
             Node node = systemLoadNode(id);
+            content.setName(node.getName());
+            content.setMimetype(node.getMimetype());
+            content.setNodeType(node.getType().name());
+            content.setParent(node.getParent());
+            content.setModifiedAt(node.getModification());
             if (node.isFolder()) {
                 content.setContent(node.getName() + " " + node.getMimetype());
             } else {

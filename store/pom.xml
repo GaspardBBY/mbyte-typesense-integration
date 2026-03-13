@@ -14,7 +14,6 @@
     <properties>
         <skipITs>true</skipITs>
         <version.tika>2.9.1</version.tika>
-        <version.lucene>9.4.1</version.lucene>
         <version.consul-client>1.5.3</version.consul-client>
     </properties>
 
@@ -103,21 +102,6 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
             <version>${version.tika}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>${version.lucene}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-queryparser</artifactId>
-            <version>${version.lucene}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-highlighter</artifactId>
-            <version>${version.lucene}</version>
         </dependency>
         <dependency>
             <groupId>com.orbitz.consul</groupId>

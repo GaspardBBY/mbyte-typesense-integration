@@ -82,6 +82,14 @@ public class CreateDockerStoreTask extends Task {
                             "QUARKUS_HTTP_PORT=8080",
                             "STORE.ROOT=/home/jboss",
                             "STORE.AUTH.OWNER=" + storeOwner,
+                            "STORE.INDEX.BACKEND=TYPESENSE",
+                            "STORE.INDEX.BOOTSTRAP.REINDEX=true",
+                            "STORE.INDEX.TYPESENSE.PROTOCOL=http",
+                            "STORE.INDEX.TYPESENSE.HOST=typesense",
+                            "STORE.INDEX.TYPESENSE.PORT=8108",
+                            "STORE.INDEX.TYPESENSE.API-KEY=change-me-typesense-key",
+                            "STORE.INDEX.TYPESENSE.COLLECTION=store_nodes",
+                            "STORE.INDEX.TYPESENSE.STORE-ID=" + storeOwner,
                             "STORE.TOPOLOGY.ENABLED=" + storeTopologyEnabled,
                             "STORE.TOPOLOGY.HOST=consul",
                             "STORE.TOPOLOGY.PORT=8500",
@@ -129,6 +137,14 @@ public class CreateDockerStoreTask extends Task {
                     "QUARKUS_HTTP_PORT=8080",
                     "STORE.ROOT=/home/jboss",
                     "STORE.AUTH.OWNER=" + storeOwner,
+                    "STORE.INDEX.BACKEND=TYPESENSE",
+                    "STORE.INDEX.BOOTSTRAP.REINDEX=true",
+                    "STORE.INDEX.TYPESENSE.PROTOCOL=http",
+                    "STORE.INDEX.TYPESENSE.HOST=typesense",
+                    "STORE.INDEX.TYPESENSE.PORT=8108",
+                    "STORE.INDEX.TYPESENSE.API-KEY=change-me-typesense-key",
+                    "STORE.INDEX.TYPESENSE.COLLECTION=store_nodes",
+                    "STORE.INDEX.TYPESENSE.STORE-ID=" + storeOwner,
                     "STORE.TOPOLOGY.ENABLED=" + storeTopologyEnabled,
                     "STORE.TOPOLOGY.HOST=consul",
                     "STORE.TOPOLOGY.PORT=8500",
@@ -144,11 +160,15 @@ public class CreateDockerStoreTask extends Task {
             Map<String, String> labels = inspect.getConfig().getLabels();
             Map<String, String> expectedLabels = Map.of(
                     "traefik.enable", "true",
-                    "traefik.docker.network", "mbyte",
-                    "traefik.http.routers." + storeOwner + ".rule", "Host(`" + storeFqdn + "`)",
-                    "traefik.http.routers." + storeOwner + ".entrypoints", "http",
-                    "traefik.http.routers." + storeOwner + ".service", storeOwner + "-http",
-                    "traefik.http.services." + storeOwner + "-http.loadbalancer.server.port", "8080"
+                    "traefik.docker.network", networkName,
+                    "traefik.http.routers." + storeName + ".rule", "Host(`" + storeFqdn + "`)",
+                    "traefik.http.routers." + storeName + ".entrypoints", "websecure",
+                    "traefik.http.routers." + storeName + ".tls", "true",
+                    "traefik.http.routers." + storeName + "-http.rule", "Host(`" + storeFqdn + "`)",
+                    "traefik.http.routers." + storeName + "-http.entrypoints", "web",
+                    "traefik.http.routers." + storeName + "-http.middlewares", "redirect-to-https",
+                    "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme", "https",
+                    "traefik.http.services." + storeName + ".loadbalancer.server.port", "8080"
             );
             if (labels == null || !labels.entrySet().containsAll(expectedLabels.entrySet())) {
                 this.fail("Existing container labels do not match expected");
