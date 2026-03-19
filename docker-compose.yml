@@ -8,7 +8,7 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+      - "8082:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./provisioning/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -180,8 +180,6 @@ services:
     build:
       context: .
       dockerfile: store/src/main/docker/Dockerfile.multistage
-    profiles:
-      - tools
 
 networks:
   mbyte.fr:
@@ -194,7 +192,7 @@ networks:
 
 volumes:
   mbyte.db.volume:
-    name: mbyte.fr.db_v2
+    name: mbyte.fr.db_v3
     driver: local
     driver_opts:
       type: none
